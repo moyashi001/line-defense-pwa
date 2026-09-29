@@ -6,7 +6,7 @@ const $ = (id) => document.getElementById(id);
 
 export class BattleUI {
   /**
-   * @param {{ onSpawn:(i:number)=>void }} actions
+   * @param {{ onSpawn:(i:number)=>void, onSpecial?:()=>void }} actions
    */
   constructor(actions) {
     this.actions = actions;
@@ -18,6 +18,7 @@ export class BattleUI {
       moneyFill: $('money-fill'),
       moneyText: $('hud-money'),
       costNow: $('cost-now'),
+      special: $('btn-special'),
       costLevel: $('cost-level'),
       costLvFill: $('cost-lv-fill'),
       allyCount: $('ally-count'),
@@ -25,6 +26,10 @@ export class BattleUI {
     };
     this.buttons = [];
     this.cache = {}; // DOM更新を最小限にするための前回値
+    this.el.special.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      this.actions.onSpecial?.();
+    });
   }
 
   /** 出撃ボタンを編成に合わせて作り直す */
@@ -79,6 +84,9 @@ export class BattleUI {
     el.costLvFill.style.width = `${battle.costLevelProgress * 100}%`;
     this.setText('allyCount', el.allyCount, `出撃 ${battle.allyCount}/${battle.allyCap}`);
     el.allyCount.classList.toggle('full', battle.allyCount >= battle.allyCap);
+
+    el.special.style.setProperty('--charge', battle.special.toFixed(3));
+    el.special.classList.toggle('ready', battle.specialReady);
 
     const full = battle.money >= battle.costMax;
     if (this.cache.full !== full) {

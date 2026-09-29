@@ -33,6 +33,7 @@ export class Effects {
     this.screen = [];     // 画面系パーティクル(漂う粒子・紙吹雪)
     this.beams = [];
     this.flashes = [];    // 画面全体のフラッシュ
+    this.special = null;  // 必殺技ビーム
     this.ambient = theme ? AMBIENT[theme.ambient] ?? null : null;
     this.ambientAcc = 0;
     this.darken = 0;      // 敗北時の暗転(0〜1)
@@ -91,6 +92,15 @@ export class Effects {
       case 'bossSpawn':
         this.flash('#000000', 0.55, 0.9);
         for (let i = 0; i < 14; i++) this.add({ kind: 'smoke', x: ev.x + rand(-40, 40), laneY: ev.laneY, h: 2, vx: rand(-40, 40), vh: rand(5, 30), life: rand(0.6, 1.1), size: rand(6, 11), color: '#6d5a5a' });
+        break;
+      case 'special':
+        // 自陣から敵の城まで届く極太ビーム
+        this.special = { x0: ev.x0, x1: ev.x1, t: 0, life: 1.1 };
+        this.flash('#bff8ff', 0.6, 0.5);
+        for (let i = 0; i < 60; i++) {
+          const x = rand(ev.x0, ev.x1);
+          this.add({ kind: 'spark', x, laneY: rand(-8, 8), h: rand(10, 60), vx: rand(20, 120), vh: rand(-60, 120), g: 120, life: rand(0.3, 0.8), size: rand(1.5, 3), color: pick(['#8ff3ff', '#ffffff', '#b388ff']) });
+        }
         break;
       case 'end':
         if (ev.win) this.confetti();
@@ -211,6 +221,10 @@ export class Effects {
 
     for (const b of this.beams) b.t += dt;
     this.beams = this.beams.filter((b) => b.t < b.life);
+    if (this.special) {
+      this.special.t += dt;
+      if (this.special.t >= this.special.life) this.special = null;
+    }
     for (const f of this.flashes) f.t += dt;
     this.flashes = this.flashes.filter((f) => f.t < f.life);
 
@@ -257,6 +271,7 @@ export class Effects {
   drawFront(ctx) {
     const { k } = this.r;
     ctx.save();
+    if (this.special) this.drawSpecial(ctx, this.special);
     for (const b of this.beams) this.drawBeam(ctx, b);
     for (const p of this.parts) {
       const [x, y] = this.pos(p);
@@ -351,6 +366,36 @@ export class Effects {
           break;
       }
     }
+    ctx.restore();
+  }
+
+  drawSpecial(ctx, s) {
+    const { r } = this;
+    const p = s.t / s.life;
+    // 伸びる→太くなる→細くなって消える
+    const reach = Math.min(1, p / 0.18);
+    const width = (p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75) * 70 * r.k;
+    const x0 = r.toScreenX(s.x0);
+    const x1 = x0 + (r.toScreenX(s.x1) - x0) * reach;
+    const y = r.groundY - 34 * r.k;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(0, y - width, 0, y + width);
+    g.addColorStop(0, 'rgba(120,80,255,0)');
+    g.addColorStop(0.35, 'rgba(120,230,255,.9)');
+    g.addColorStop(0.5, 'rgba(255,255,255,1)');
+    g.addColorStop(0.65, 'rgba(120,230,255,.9)');
+    g.addColorStop(1, 'rgba(120,80,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x0, y - width, x1 - x0, width * 2);
+    // 先端の光
+    const head = ctx.createRadialGradient(x1, y, 0, x1, y, width * 1.4 + 10);
+    head.addColorStop(0, 'rgba(255,255,255,1)');
+    head.addColorStop(1, 'rgba(120,230,255,0)');
+    ctx.fillStyle = head;
+    ctx.beginPath();
+    ctx.arc(x1, y, width * 1.4 + 10, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
   }
 

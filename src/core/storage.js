@@ -3,12 +3,16 @@
 //   xp      : 所持経験値
 //   levels  : { [unitId]: level }
 //   deck    : 出撃編成(unitId の配列)
+//   seen    : 出会った敵 { [enemyType]: true } (図鑑用)
+//   kills   : 敵ごとの撃破数 { [enemyType]: number } (図鑑用)
 import { ALLY_UNITS, DEFAULT_DECK, DECK_SIZE, allyById } from '../config/units.js';
 import { LEVEL } from '../config/constants.js';
+import { DEBUG } from './debugFlag.js';
 
-const KEY = 'line-defense:progress:v1';
+// デバッグモードでは別の保存枠を使い、本来の進行データを汚さない
+const KEY = DEBUG ? 'line-defense:debug:v1' : 'line-defense:progress:v1';
 
-const DEFAULT = () => ({ cleared: {}, xp: 0, levels: {}, deck: [...DEFAULT_DECK] });
+const DEFAULT = () => ({ cleared: {}, xp: 0, levels: {}, deck: [...DEFAULT_DECK], seen: {}, kills: {} });
 
 function read() {
   try {
@@ -107,6 +111,37 @@ export const Progress = {
     data.deck = ALLY_UNITS.map((u) => u.id).filter((id) => deck.includes(id));
     write(data);
     return true;
+  },
+
+  // ---------- 図鑑 ----------
+  isSeen(type) {
+    return !!read().seen[type];
+  },
+  kills(type) {
+    return read().kills[type] ?? 0;
+  },
+  /** 戦闘の結果(出会った敵・撃破数)をまとめて保存 */
+  recordBattle(seenTypes, killCounts) {
+    const data = read();
+    for (const t of seenTypes) data.seen[t] = true;
+    for (const [t, n] of Object.entries(killCounts)) data.kills[t] = (data.kills[t] ?? 0) + n;
+    write(data);
+  },
+
+  // ---------- デバッグ用 ----------
+  debugUnlockAll(stageCount, enemyTypes) {
+    const data = read();
+    for (let i = 1; i <= stageCount; i++) data.cleared[i] = data.cleared[i] ?? { bestTime: 999 };
+    for (const t of enemyTypes) data.seen[t] = true;
+    write(data);
+  },
+  debugAddXp(n) {
+    this.addXp(n);
+  },
+  debugMaxLevels() {
+    const data = read();
+    for (const u of ALLY_UNITS) data.levels[u.id] = LEVEL.max;
+    write(data);
   },
 
   reset() {

@@ -30,6 +30,7 @@
         <button id="btn-world-back" class="btn btn-ghost btn-sm">← タイトル</button>
         <h2>ワールド選択</h2>
         <span id="xp-world" class="xp-badge"></span>
+        <button id="btn-zukan" class="btn btn-sm">図鑑</button>
         <button id="btn-team-world" class="btn btn-primary btn-sm">編成・強化</button>
       </header>
       <div id="world-list" class="stage-list"></div>
@@ -59,6 +60,29 @@
       <div id="team-message" class="team-message"></div>
     </section>
 
+    <!-- 図鑑 -->
+    <section id="screen-zukan" class="screen">
+      <header class="select-header">
+        <button id="btn-zukan-back" class="btn btn-ghost btn-sm">← もどる</button>
+        <h2>図鑑</h2>
+        <button class="btn btn-sm zukan-tab active" data-tab="ally">なかま</button>
+        <button class="btn btn-sm zukan-tab" data-tab="enemy">てき</button>
+        <span id="zukan-count" class="xp-badge"></span>
+      </header>
+      <div id="zukan-grid" class="zukan-grid"></div>
+      <div id="zukan-detail" class="overlay">
+        <div class="panel zukan-detail-panel">
+          <canvas id="zukan-detail-icon"></canvas>
+          <div class="zukan-detail-body">
+            <h2 id="zukan-detail-name"></h2>
+            <p id="zukan-detail-desc"></p>
+            <dl id="zukan-detail-stats" class="result-stats"></dl>
+            <button id="btn-zukan-close" class="btn btn-primary">とじる</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 戦闘画面 -->
     <section id="screen-battle" class="screen">
       <div class="hud">
@@ -83,6 +107,10 @@
           <span class="ally-count" id="ally-count"></span>
         </div>
         <div id="unit-buttons" class="unit-buttons"></div>
+        <button id="btn-special" class="special-btn" aria-label="必殺技">
+          <span class="special-ring"></span>
+          <span class="special-label">ビーム</span>
+        </button>
       </div>
       <div id="pause-overlay" class="overlay">
         <div class="panel">

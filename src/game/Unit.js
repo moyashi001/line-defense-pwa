@@ -97,6 +97,13 @@ export class Unit {
     }
   }
 
+  /** 必殺技などで強制的に吹き飛ばす */
+  forceKnockback(power = 1) {
+    if (this.dead) return;
+    this.state = 'knockback';
+    this.kbTimer = GAME.knockbackTime * power;
+  }
+
   applySlow({ factor, duration }) {
     this.slowFactor = Math.min(this.slowFactor, factor);
     this.slowTimer = Math.max(this.slowTimer, duration);

@@ -1,5 +1,5 @@
 // 戦闘の状態とルール(描画・DOMには依存しない)
-import { WORLD, GAME, COST, LEVEL, costLevelAt } from '../config/constants.js';
+import { WORLD, GAME, COST, LEVEL, SPECIAL, costLevelAt } from '../config/constants.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
 import { Unit } from './Unit.js';
 import { Projectile } from './Projectile.js';
@@ -43,6 +43,15 @@ export class Battle {
     this.bossTriggered = false;
     this.bossWarning = 0; // 警告演出の残り時間
 
+    this.special = SPECIAL.startCharge; // 必殺技ゲージ(0〜1)
+
+    // 図鑑用の記録
+    this.seenTypes = new Set();
+    this.killCounts = {};
+
+    // デバッグ用フラグ(デバッグパネルから切り替える)
+    this.debug = { infiniteCost: false, noCooldown: false, invincible: false };
+
     this.result = null;  // { win, time, kills }
     this.endTimer = 0;
 
@@ -85,6 +94,22 @@ export class Battle {
       if (gap < bestGap) { bestGap = gap; best = o; }
     }
     return best;
+  }
+
+  get specialReady() { return this.special >= 1 && !this.isOver; }
+
+  /** 必殺技: 画面上の敵全員にダメージを与えて吹き飛ばす(城には当たらない) */
+  useSpecial() {
+    if (!this.specialReady) return false;
+    this.special = 0;
+    const dmg = Math.round(SPECIAL.baseDamage * this.stage.enemyMul.hp);
+    for (const e of this.aliveEnemies()) {
+      e.takeDamage(dmg, this, { pierce: true });
+      e.forceKnockback(e.def.boss ? 1 : 2.2);
+    }
+    this.fx('special', { x0: WORLD.allyBaseX, x1: WORLD.length });
+    this.emit('special');
+    return true;
   }
 
   canSpawnAlly(index) {
@@ -137,6 +162,7 @@ export class Battle {
     const px = x == null ? WORLD.length - def.size / 2 : Math.min(x, WORLD.length - def.size / 2);
     const unit = new Unit(def, 'enemy', px, this.stage.enemyMul);
     this.units.push(unit);
+    this.seenTypes.add(type);
     this.fx('spawn', { side: 'enemy', x: unit.x, laneY: unit.laneY, flying: unit.flying, boss: !!def.boss });
     if (def.boss) this.emit('bossSpawn', unit);
   }
@@ -212,6 +238,9 @@ export class Battle {
     this.time += dt;
     this.updateCostLevel();
     this.money = Math.min(this.costMax, this.money + this.costRate * dt);
+    this.special = Math.min(1, this.special + dt / SPECIAL.chargeTime);
+    if (this.debug.infiniteCost) this.money = this.costMax;
+    if (this.debug.noCooldown) this.allyCooldowns = this.allyCooldowns.map(() => 0);
     this.allyCooldowns = this.allyCooldowns.map((c) => Math.max(0, c - dt));
 
     this.updateWaves(dt);
@@ -220,6 +249,7 @@ export class Battle {
     this.checkBreach();
     this.checkBossTrigger();
 
+    if (this.debug.invincible) this.life = this.maxLife;
     if (this.life <= 0) this.finish(false);
   }
 
@@ -272,6 +302,8 @@ export class Battle {
     }
     if (unit.side === 'enemy') {
       this.kills += 1;
+      this.killCounts[unit.def.id] = (this.killCounts[unit.def.id] ?? 0) + 1;
+      this.special = Math.min(1, this.special + SPECIAL.killCharge);
       // 撃破報酬: 敵の種類ごとの reward(雑魚は少なく、ボスは多い)
       const reward = Math.round((unit.def.reward ?? 0) * COST.killRewardMul);
       if (reward) {
@@ -295,6 +327,23 @@ export class Battle {
     this.addExplosion(castle.x, 90);
     this.emit('castleDestroyed', { x: castle.x });
     this.finish(true);
+  }
+
+  // ---------- デバッグ用 ----------
+  /** 編成・コストに関係なく味方を出す */
+  debugSpawnAlly(def) {
+    const m = LEVEL.statMul(this.levels[def.id] ?? 1);
+    const unit = new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2, { hp: m, atk: m, speed: 1 });
+    this.units.push(unit);
+    this.fx('spawn', { side: 'ally', x: unit.x, laneY: unit.laneY, flying: unit.flying, baseX: WORLD.allyBaseX * 0.7 });
+  }
+  debugKillEnemies() {
+    for (const e of this.aliveEnemies()) e.takeDamage(1e9, this, { pierce: true });
+  }
+  debugTriggerBoss() {
+    if (!this.stage.boss || this.bossTriggered) return false;
+    this.castle.hp = Math.min(this.castle.hp, this.castle.maxHp * this.stage.boss.castleHpRatio);
+    return true;
   }
 
   spawnProjectile(owner, target) {

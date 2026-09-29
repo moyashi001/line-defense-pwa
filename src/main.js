@@ -1,5 +1,5 @@
 // エントリーポイント: 画面遷移と戦闘の組み立て
-import { APP_VERSION, REWARD } from './config/constants.js';
+import { APP_VERSION, REWARD, SPECIAL } from './config/constants.js';
 import { STAGES, WORLDS } from './config/stages.js';
 import { ALLY_UNITS, ENEMY_UNITS, allyById } from './config/units.js';
 import { Progress } from './core/storage.js';
@@ -7,7 +7,9 @@ import { GameLoop } from './core/loop.js';
 import { Battle } from './game/Battle.js';
 import { Renderer } from './render/Renderer.js';
 import { preloadSprites, getImage } from './render/sprites.js';
-import { ScreenManager, renderWorldList, renderStageList, renderTeam, renderResult, unitsUnlockedBy, latestWorldId } from './ui/screens.js';
+import { ScreenManager, renderWorldList, renderStageList, renderTeam, renderResult, renderZukan, unitsUnlockedBy, latestWorldId } from './ui/screens.js';
+import { DEBUG } from './core/debugFlag.js';
+import { setupDebug, applyDebugToBattle, debugState } from './debug/debugPanel.js';
 import { BattleUI } from './ui/battleUI.js';
 
 const $ = (id) => document.getElementById(id);
@@ -27,13 +29,15 @@ let paused = false;
 
 const ui = new BattleUI({
   onSpawn: (i) => { if (battle && !paused) battle.spawnAlly(i); },
+  onSpecial: () => { if (battle && !paused) battle.useSpecial(); },
 });
 
 const loop = new GameLoop((dt) => {
   if (!battle) return;
-  if (!paused) battle.update(dt);
+  const speed = DEBUG ? debugState.speed : 1; // デバッグの倍速
+  for (let i = 0; i < speed && battle && !paused; i++) battle.update(dt);
   if (!battle) return; // update 中に結果画面へ遷移した
-  renderer.render(battle, paused ? 0 : dt);
+  renderer.render(battle, paused ? 0 : dt * speed);
   ui.update(battle);
 });
 
@@ -51,6 +55,10 @@ function onBattleEvent(type, payload) {
       break;
     case 'wave':
       if (!battle?.bossWarning) ui.showBanner(`WAVE ${payload.count}`, '#fff', 1200);
+      break;
+    case 'special':
+      ui.showBanner(SPECIAL.name + '！', '#8ff3ff', 1200);
+      renderer.shake(9, 0.8);
       break;
     case 'bossWarning':
       ui.showBanner('⚠ WARNING ⚠', '#ff4d4d', 2500, true);
@@ -119,6 +127,11 @@ screens.register('select', {
   enter: () => renderStageList(currentWorldId ?? latestWorldId(), startBattle),
 });
 
+screens.register('zukan', {
+  enter: () => renderZukan(),
+  leave: () => $('zukan-detail').classList.remove('show'),
+});
+
 screens.register('team', {
   enter: () => renderTeam(),
 });
@@ -130,6 +143,7 @@ screens.register('battle', {
     const deck = Progress.deck().map(allyById);
     ui.buildDeck(deck);
     battle = new Battle(currentStage, { onEvent: onBattleEvent, onEnd: onBattleEnd }, { deck, levels: Progress.levels() });
+    if (DEBUG) applyDebugToBattle(battle, renderer);
     // レイアウト確定後にサイズを取る
     renderer.fx.reset(currentStage.theme);
     requestAnimationFrame(() => {
@@ -141,6 +155,8 @@ screens.register('battle', {
   },
   leave: () => {
     loop.stop();
+    // 図鑑用: 出会った敵と撃破数を保存(途中リタイアでも記録する)
+    if (battle) Progress.recordBattle(battle.seenTypes, battle.killCounts);
     battle = null;
     setPaused(false);
   },
@@ -159,6 +175,11 @@ $('btn-team-world').addEventListener('click', openTeam);
 $('btn-team').addEventListener('click', openTeam);
 $('btn-result-team').addEventListener('click', openTeam);
 $('btn-team-back').addEventListener('click', () => screens.show(teamReturn));
+$('btn-zukan').addEventListener('click', () => screens.show('zukan'));
+$('btn-zukan-back').addEventListener('click', () => screens.show('world'));
+document.querySelectorAll('.zukan-tab').forEach((b) => b.addEventListener('click', () => renderZukan(b.dataset.tab)));
+$('btn-zukan-close').addEventListener('click', () => $('zukan-detail').classList.remove('show'));
+$('zukan-detail').addEventListener('click', (e) => { if (e.target.id === 'zukan-detail') $('zukan-detail').classList.remove('show'); });
 $('btn-reset').addEventListener('click', () => {
   if (confirm('クリア状況・経験値・キャラのレベルをすべて消去しますか？')) {
     Progress.reset();
@@ -201,6 +222,11 @@ if (['localhost', '127.0.0.1'].includes(location.hostname)) {
     step(sec, dt = 1 / 60) { for (let t = 0; t < sec && battle; t += dt) battle.update(dt); if (battle) { renderer.render(battle, dt); ui.update(battle); } },
     renderer, ui, screens, Progress,
   };
+}
+
+// ---------- デバッグ(?debug=1) ----------
+if (DEBUG) {
+  setupDebug({ getBattle: () => battle, renderer, refreshWorld: () => renderWorldList(openWorld) });
 }
 
 // ---------- 起動 ----------

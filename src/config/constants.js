@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.15.1';
+export const APP_VERSION = 'v0.16.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -53,6 +53,15 @@ export function costLevelAt(time) {
   while (lv + 1 < COST.levels.length && time >= COST.levels[lv + 1].time) lv++;
   return lv;
 }
+
+// 自陣の必殺技(ギャラクシービーム): ゲージが満タンになると撃てる。画面の敵全員にダメージ+ノックバック
+export const SPECIAL = {
+  name: 'ギャラクシービーム',
+  chargeTime: 30,     // 空から満タンまでの秒数
+  startCharge: 0.4,   // 開始時のゲージ(0〜1)。子ども向けに少し早く撃てるように
+  killCharge: 0.01,   // 敵を1体倒すごとに増えるゲージ
+  baseDamage: 220,    // ステージの敵HP倍率を掛けたダメージ(装甲無視)
+};
 
 // キャラのレベル(経験値で強化)
 export const LEVEL = {

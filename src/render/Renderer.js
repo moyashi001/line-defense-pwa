@@ -16,6 +16,7 @@ export class Renderer {
     this.shakeTime = 0;
     this.shakePower = 0;
     this.fx = new Effects(this);
+    this.showHitbox = false; // デバッグ: 当たり判定と射程を表示
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -82,6 +83,7 @@ export class Renderer {
     for (const e of battle.effects) this.drawEffect(e);
     this.fx.drawFront(ctx);
     for (const p of battle.popups) this.drawPopup(p);
+    if (this.showHitbox) this.drawHitboxes(battle);
     ctx.restore();
 
     this.drawBossOverlay(battle);
@@ -246,6 +248,33 @@ export class Renderer {
       }
       ctx.stroke();
     }
+  }
+
+  /** デバッグ: 当たり判定(箱)と射程(線)を表示 */
+  drawHitboxes(battle) {
+    const { ctx, k } = this;
+    ctx.save();
+    ctx.lineWidth = 1;
+    ctx.font = '10px monospace';
+    for (const u of [...battle.units, battle.castle]) {
+      if (!u.alive) continue;
+      const x0 = this.toScreenX(u.x - u.half);
+      const x1 = this.toScreenX(u.x + u.half);
+      const y = this.toScreenY(u.laneY) - (u.def?.flying ? 46 * k : 0);
+      const col = u.side === 'ally' ? '#00e5ff' : '#ff4081';
+      ctx.strokeStyle = col;
+      ctx.strokeRect(x0, y - 30 * k, x1 - x0, 30 * k);
+      if (u.def.range != null) {
+        const front = u.side === 'ally' ? x1 : x0;
+        ctx.beginPath();
+        ctx.moveTo(front, y - 4);
+        ctx.lineTo(front + (u.dir ?? 1) * u.def.range * this.sx, y - 4);
+        ctx.stroke();
+      }
+      ctx.fillStyle = col;
+      ctx.fillText(`${Math.ceil(u.hp)}`, x0, y - 32 * k);
+    }
+    ctx.restore();
   }
 
   /** ボス警告中・ボス存在中の赤い点滅 */

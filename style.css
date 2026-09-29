@@ -274,6 +274,75 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .money-fill.full { animation: money-full 1s ease-in-out infinite; }
 @keyframes money-full { 50% { filter: brightness(1.5); } }
 
+/* ---------- 必殺技ボタン ---------- */
+.special-btn {
+  position: relative; width: 70px; flex-shrink: 0;
+  border: 2px solid #8ff3ff66; border-radius: 12px; background: #16233f;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden;
+}
+.special-ring {
+  position: absolute; inset: 6px; border-radius: 50%;
+  background: conic-gradient(#8ff3ff calc(var(--charge, 0) * 1turn), #ffffff18 0);
+  -webkit-mask: radial-gradient(circle, transparent 55%, #000 57%);
+          mask: radial-gradient(circle, transparent 55%, #000 57%);
+}
+.special-label { position: relative; font-size: .78rem; font-weight: 900; color: #cfe; }
+.special-btn.ready { border-color: #8ff3ff; animation: special-ready 1s ease-in-out infinite; }
+.special-btn.ready .special-label { color: #fff; text-shadow: 0 0 8px #8ff3ff; }
+@keyframes special-ready { 50% { box-shadow: 0 0 18px #8ff3ff, inset 0 0 14px #8ff3ff88; } }
+.special-btn:not(.ready) { filter: saturate(.6); }
+
+/* ---------- 図鑑 ---------- */
+#screen-zukan { flex-direction: column; background: linear-gradient(var(--bg), var(--bg-2)); }
+.zukan-tab.active { background: var(--accent); color: var(--accent-text); }
+.zukan-grid {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;
+  padding: 4px 16px 16px; align-content: start;
+}
+.zukan-card {
+  background: var(--panel); border: 2px solid #fff2; border-radius: 14px; padding: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer;
+}
+.zukan-card:active { transform: scale(.97); }
+.zukan-card canvas { width: 72px; height: 72px; }
+.zukan-card .z-name { font-weight: 900; font-size: .85rem; text-align: center; }
+.zukan-card .z-sub { font-size: .68rem; color: var(--muted); }
+.zukan-card.unknown { opacity: .6; }
+.zukan-card.boss { border-color: #ff8a80; }
+.panel.zukan-detail-panel { flex-direction: row; align-items: center; gap: 16px; max-width: min(92vw, 620px); max-height: 92%; overflow-y: auto; }
+#zukan-detail-icon { width: 160px; height: 160px; flex-shrink: 0; }
+.zukan-detail-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.zukan-detail-body h2 { text-align: left; }
+.zukan-detail-body p { margin: 0; font-size: .9rem; line-height: 1.5; }
+@media (max-height: 420px) {
+  #zukan-detail-icon { width: 120px; height: 120px; }
+  .special-btn { width: 60px; }
+}
+
+/* ---------- デバッグ ---------- */
+.debug-fab {
+  position: absolute; left: 6px; top: 6px; z-index: 5;
+  width: 34px; height: 34px; border-radius: 50%; border: 2px solid #ff4081;
+  background: #000a; font-size: 1rem; cursor: pointer;
+}
+.debug-panel {
+  position: absolute; left: 6px; top: 46px; z-index: 6; max-height: calc(100% - 52px); overflow-y: auto;
+  background: #0b0f1ef2; border: 2px solid #ff4081; border-radius: 12px; padding: 8px;
+  display: none; flex-direction: column; gap: 6px; width: 250px; font-size: .75rem;
+}
+.debug-panel.show { display: flex; }
+.debug-panel h4 { margin: 4px 0 0; color: #ff80ab; font-size: .75rem; }
+.debug-panel .row { display: flex; flex-wrap: wrap; gap: 4px; }
+.debug-panel button, .debug-panel select {
+  font: inherit; font-size: .72rem; padding: 4px 6px; border-radius: 6px;
+  border: 1px solid #fff4; background: #223; color: #fff; cursor: pointer;
+}
+.debug-panel button.on { background: #ff4081; border-color: #ff80ab; }
+.debug-bar { display: flex; gap: 6px; padding: 0 16px 4px; flex-wrap: wrap; }
+.debug-bar button { border-color: #ff4081; }
+.debug-badge { position: fixed; left: 50%; transform: translateX(-50%); bottom: 2px; z-index: 50; background: #ff4081; color: #fff; font-size: .65rem; font-weight: 900; padding: 2px 6px; border-radius: 6px; pointer-events: none; }
+
 /* ---------- オーバーレイ / パネル ---------- */
 .overlay {
   position: absolute; inset: 0; display: none;

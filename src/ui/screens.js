@@ -194,3 +194,62 @@ export function renderResult(result, stage, info) {
 export function unitsUnlockedBy(stageId) {
   return ALLY_UNITS.filter((u) => u.unlockAfter === stageId);
 }
+
+// ---------- 図鑑 ----------
+let zukanTab = 'ally';
+
+function zukanEntries(tab) {
+  if (tab === 'ally') {
+    return ALLY_UNITS.map((def) => ({ def, known: Progress.isUnitUnlocked(def.id), kind: 'ally' }));
+  }
+  return Object.values(ENEMY_UNITS).map((def) => ({ def, known: Progress.isSeen(def.id), kind: 'enemy' }));
+}
+
+/** アイコンを描く。まだ知らないキャラはシルエットにする */
+function drawZukanIcon(canvas, def, known) {
+  drawUnitIcon(canvas, def);
+  if (known) return;
+  const ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.fillStyle = '#111827';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+/** 図鑑の一覧を描画 */
+export function renderZukan(tab = zukanTab) {
+  zukanTab = tab;
+  document.querySelectorAll('.zukan-tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab));
+  const entries = zukanEntries(tab);
+  $('zukan-count').textContent = `${entries.filter((e) => e.known).length} / ${entries.length}`;
+
+  const grid = $('zukan-grid');
+  grid.innerHTML = '';
+  for (const e of entries) {
+    const card = document.createElement('button');
+    card.className = `zukan-card${e.known ? '' : ' unknown'}${e.def.boss ? ' boss' : ''}`;
+    const sub = !e.known
+      ? (e.kind === 'ally' ? `${STAGES.find((s) => s.id === e.def.unlockAfter)?.label ?? ''} クリアで仲間に` : 'まだ出会っていない')
+      : e.kind === 'ally' ? `${e.def.role} / Lv${Progress.level(e.def.id)}` : `たおした数 ${Progress.kills(e.def.id)}`;
+    card.innerHTML = `<canvas></canvas><div class="z-name">${e.known ? e.def.name : '？？？'}</div><div class="z-sub">${sub}</div>`;
+    grid.appendChild(card);
+    requestAnimationFrame(() => drawZukanIcon(card.querySelector('canvas'), e.def, e.known));
+    if (e.known) card.addEventListener('click', () => showZukanDetail(e));
+  }
+}
+
+function showZukanDetail({ def, kind }) {
+  $('zukan-detail-name').textContent = def.name;
+  $('zukan-detail-desc').textContent = def.desc ?? '';
+  const stats = kind === 'ally'
+    ? [['役割', def.role], ['レベル', Progress.level(def.id)], ['HP', Math.round(def.hp * LEVEL.statMul(Progress.level(def.id)))],
+      ['攻撃', Math.round(def.atk * LEVEL.statMul(Progress.level(def.id)))], ['射程', def.range], ['コスト', def.cost]]
+    : [['HP', def.hp], ['攻撃', def.atk], ['射程', def.range], ['撃破報酬', `${def.reward ?? 0} コスト`], ['たおした数', Progress.kills(def.id)]];
+  if (def.flying) stats.push(['とくちょう', '空を飛ぶ']);
+  if (def.armor) stats.push(['よろい', def.armor]);
+  $('zukan-detail-stats').innerHTML = stats.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('zukan-detail').classList.add('show');
+  requestAnimationFrame(() => drawUnitIcon($('zukan-detail-icon'), def));
+}
