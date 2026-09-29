@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.11.0';
+export const APP_VERSION = 'v0.12.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -19,7 +19,8 @@ export const ENEMY_CASTLE = {
 export const GAME = {
   maxDt: 0.05,          // 1フレームの最大経過時間(タブ復帰時の暴走防止)
   nextWaveDelay: 2.5,   // ウェーブ間のインターバル(秒)
-  endDelay: 1.6,        // 勝敗決定から結果画面への遷移待ち(秒)
+  endDelay: 2.6,        // 勝敗決定から結果画面への遷移待ち(秒)。城の崩壊・紙吹雪を見せる
+  slowmoTime: 1.2,      // 城を壊した直後のスローモーション(秒)
   knockbackSpeed: 150,
   knockbackTime: 0.35,
   allyCap: 15,          // 同時に出撃できる味方の上限

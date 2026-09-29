@@ -5,6 +5,7 @@ import { WORLD } from '../config/constants.js';
 const ALLY_BASE_IMG = 'assets/castle/ally.png';
 const ENEMY_CASTLE_IMG = 'assets/castle/enemy.png';
 import { drawUnit, visualHeight, getImage } from './sprites.js';
+import { Effects } from './effects.js';
 
 export class Renderer {
   constructor(canvas) {
@@ -14,6 +15,7 @@ export class Renderer {
     this.h = 0;
     this.shakeTime = 0;
     this.shakePower = 0;
+    this.fx = new Effects(this);
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -56,7 +58,10 @@ export class Renderer {
       ctx.translate((Math.random() - 0.5) * 2 * p, (Math.random() - 0.5) * 2 * p);
     }
 
+    this.fx.update(dt);
+
     this.drawBackground(theme);
+    this.fx.drawBack(ctx);
     this.drawCastle(battle.castle);
     this.drawBase(battle);
 
@@ -70,12 +75,17 @@ export class Renderer {
     }
     for (const u of units) if (u.alive && u.hp < u.maxHp) this.drawHpBar(u);
 
-    for (const p of battle.projectiles) this.drawProjectile(p);
+    for (const p of battle.projectiles) {
+      this.fx.trail(p, dt);
+      this.drawProjectile(p);
+    }
     for (const e of battle.effects) this.drawEffect(e);
+    this.fx.drawFront(ctx);
     for (const p of battle.popups) this.drawPopup(p);
     ctx.restore();
 
     this.drawBossOverlay(battle);
+    this.fx.drawOverlay(ctx);
     this.drawTopBars(battle);
   }
 
@@ -206,13 +216,20 @@ export class Renderer {
   /** 敵の城(画像版)。HPが減るほど沈み、ヒビが入る。攻撃を受けると揺れる */
   drawCastleImage(img, castle, frontX, ratio) {
     const { ctx, k, groundY } = this;
-    const h = (castle.alive ? 0.8 + 0.2 * ratio : 0.55) * 160 * k;
+    const h = (castle.alive ? 0.8 + 0.2 * ratio : 0.8) * 160 * k;
     const w = (img.naturalWidth / img.naturalHeight) * h;
     const shake = castle.hitFlash > 0 ? (Math.random() - 0.5) * 5 : 0;
     const x = Math.min(frontX - w * 0.1, this.w - w * 0.8) + shake;
-    const top = groundY + 12 * k - h;
+    const ground = groundY + 12 * k;
+    const sink = castle.alive ? 0 : Math.min(1, castle.deadTime / 1.4);
+    const top = ground - h + sink * h * 0.7 + (castle.alive ? 0 : (Math.random() - 0.5) * 4 * (1 - sink));
     ctx.save();
-    if (!castle.alive) ctx.globalAlpha = 0.45;
+    if (!castle.alive) {
+      ctx.globalAlpha = 1 - sink * 0.6;
+      ctx.beginPath();
+      ctx.rect(x - 20, 0, w + 40, ground); // 地面より下は描かない(沈んでいく)
+      ctx.clip();
+    }
     ctx.drawImage(img, x, top, w, h);
     ctx.restore();
     if (ratio < 0.66 && castle.alive) {

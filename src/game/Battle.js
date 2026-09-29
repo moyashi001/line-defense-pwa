@@ -91,7 +91,9 @@ export class Battle {
     this.money -= def.cost;
     this.allyCooldowns[index] = def.cooldown;
     const m = LEVEL.statMul(this.levels[def.id] ?? 1);
-    this.units.push(new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2, { hp: m, atk: m, speed: 1 }));
+    const unit = new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2, { hp: m, atk: m, speed: 1 });
+    this.units.push(unit);
+    this.fx('spawn', { side: 'ally', x: unit.x, laneY: unit.laneY, flying: unit.flying, baseX: WORLD.allyBaseX * 0.7 });
     return true;
   }
 
@@ -126,6 +128,7 @@ export class Battle {
     const px = x == null ? WORLD.length - def.size / 2 : Math.min(x, WORLD.length - def.size / 2);
     const unit = new Unit(def, 'enemy', px, this.stage.enemyMul);
     this.units.push(unit);
+    this.fx('spawn', { side: 'enemy', x: unit.x, laneY: unit.laneY, flying: unit.flying, boss: !!def.boss });
     if (def.boss) this.emit('bossSpawn', unit);
   }
 
@@ -177,8 +180,9 @@ export class Battle {
     this.bossWarning = Math.max(0, this.bossWarning - dt);
 
     if (this.isOver) {
-      // 勝敗決定後もしばらく演出を流してから結果画面へ
-      this.updateEntities(dt);
+      // 勝敗決定後もしばらく演出を流してから結果画面へ。勝ったときは最初だけスローモーション
+      const slow = this.result.win && GAME.endDelay - this.endTimer < GAME.slowmoTime;
+      this.updateEntities(slow ? dt * 0.35 : dt);
       this.endTimer -= dt;
       if (this.endTimer <= 0 && !this._endNotified) {
         this._endNotified = true;
@@ -269,11 +273,19 @@ export class Battle {
     }
     this.spawnQueue = [];
     this.addExplosion(castle.x, 90);
-    this.emit('castleDestroyed');
+    this.emit('castleDestroyed', { x: castle.x });
     this.finish(true);
   }
 
   spawnProjectile(owner, target) {
+    const style = owner.def.projectileStyle;
+    if (style === 'laser') {
+      // 光線は一瞬で届く
+      target.takeDamage(owner.atk, this, owner.hitOpts);
+      this.fx('beam', { x0: owner.frontX, x1: target.x, laneY: owner.laneY, fromFly: owner.flying, toFly: !!target.def.flying, color: owner.def.projectileColor });
+      return;
+    }
+    if (style === 'shell') this.fx('shot', { style, x: owner.frontX, laneY: owner.laneY, flying: owner.flying, dir: owner.dir });
     this.projectiles.push(new Projectile(owner, target));
   }
 
@@ -287,6 +299,7 @@ export class Battle {
 
   addExplosion(x, radius) {
     this.effects.push({ type: 'explosion', x, radius, t: 0, life: 0.35 });
+    this.fx('explosion', { x, radius });
   }
 
   addPopup(x, text, color, rise = 40) {
@@ -295,5 +308,10 @@ export class Battle {
 
   emit(type, payload) {
     this.hooks.onEvent?.(type, payload);
+  }
+
+  /** 演出用の通知(描画側で火花・煙などにする)。ゲームの結果には影響しない */
+  fx(kind, data) {
+    this.hooks.onEvent?.('fx', { kind, ...data });
   }
 }

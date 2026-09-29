@@ -74,10 +74,25 @@ export class BattleUI {
     this.setText('allyCount', el.allyCount, `出撃 ${battle.allyCount}/${battle.allyCap}`);
     el.allyCount.classList.toggle('full', battle.allyCount >= battle.allyCap);
 
+    const full = battle.money >= battle.costMax;
+    if (this.cache.full !== full) {
+      this.cache.full = full;
+      el.costNow.parentElement.classList.toggle('full', full);
+      el.moneyFill.classList.toggle('full', full);
+    }
+
     this.buttons.forEach((b, i) => {
       const cd = battle.allyCooldowns[i];
       b.cd.style.height = `${(cd / b.def.cooldown) * 100}%`;
-      b.btn.classList.toggle('disabled', !battle.canSpawnAlly(i));
+      const ready = battle.canSpawnAlly(i);
+      b.btn.classList.toggle('disabled', !ready);
+      // 出撃できるようになった瞬間に光らせる
+      if (ready && b.ready === false) {
+        b.btn.classList.remove('ready');
+        void b.btn.offsetWidth; // アニメーションを最初から再生させる
+        b.btn.classList.add('ready');
+      }
+      b.ready = ready;
     });
   }
 

@@ -38,6 +38,7 @@ export class Unit {
     this.attackAnim = 0;
     this.hitFlash = 0;
     this.healFlash = 0;
+    this.age = 0; // 出現からの経過時間(登場演出用)
 
     // HPがしきい値を下回るたびにノックバック
     const kb = def.knockbacks ?? 1;
@@ -74,8 +75,10 @@ export class Unit {
   takeDamage(amount, battle, opts = {}) {
     if (this.dead) return;
     const armor = opts.pierce ? 0 : (this.def.armor ?? 0);
-    this.hp -= Math.max(1, amount - armor);
+    const dmg = Math.max(1, amount - armor);
+    this.hp -= dmg;
     this.hitFlash = 0.12;
+    battle.fx('hit', { x: this.x, laneY: this.laneY, flying: this.flying, side: this.side, dmg, slow: !!opts.slow, color: opts.color });
     if (opts.slow) this.applySlow(opts.slow);
     if (this.hp <= 0) {
       this.hp = 0;
@@ -90,6 +93,7 @@ export class Unit {
     if (knocked) {
       this.state = 'knockback';
       this.kbTimer = GAME.knockbackTime;
+      battle.fx('knockback', { x: this.x, laneY: this.laneY, dir: this.dir });
     }
   }
 
@@ -109,11 +113,13 @@ export class Unit {
     this.dead = true;
     this.state = 'dying';
     this.removeTimer = 0.5;
+    battle.fx('death', { x: this.x, laneY: this.laneY, flying: this.flying, side: this.side, size: this.def.size });
     battle.onUnitDied(this);
   }
 
   update(dt, battle) {
     this.animTime += dt;
+    this.age += dt;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
     this.healFlash = Math.max(0, this.healFlash - dt);
     this.attackAnim = Math.max(0, this.attackAnim - dt);
@@ -167,7 +173,10 @@ export class Unit {
         const amount = Math.round(heal.amount * (this.atk / this.def.atk || 1));
         let healed = false;
         for (const f of battle.units) {
-          if (f.side === this.side && Math.abs(f.x - this.x) <= heal.radius && f.heal(amount)) healed = true;
+          if (f.side === this.side && Math.abs(f.x - this.x) <= heal.radius && f.heal(amount)) {
+            healed = true;
+            battle.fx('healed', { x: f.x, laneY: f.laneY, flying: f.flying });
+          }
         }
         if (healed) battle.addHealEffect(this.x, heal.radius, this.side);
       }
@@ -196,7 +205,7 @@ export class Unit {
   }
 
   get hitOpts() {
-    return { pierce: !!this.def.pierce, slow: this.def.slowOnHit };
+    return { pierce: !!this.def.pierce, slow: this.def.slowOnHit, color: this.def.pierce ? '#d1a8ff' : undefined };
   }
 
   attack(target, battle) {
@@ -212,7 +221,11 @@ export class Unit {
         for (const o of battle.opponentsOf(this)) {
           if (o.alive && this.canHit(o) && this.isInFront(o) && this.gapTo(o) <= reach) o.takeDamage(this.atk, battle, this.hitOpts);
         }
-        battle.addHitEffect(this.frontX + this.dir * reach * 0.5, this, 'area');
+        if (this.def.attackFx) {
+          battle.fx('swing', { x: this.frontX, laneY: this.laneY, flying: this.flying, dir: this.dir, reach, style: this.def.attackFx, size: this.def.size, color: this.def.color });
+        } else {
+          battle.addHitEffect(this.frontX + this.dir * reach * 0.5, this, 'area');
+        }
         break;
       }
       case 'ranged':

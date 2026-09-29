@@ -13,6 +13,7 @@ export class Castle {
     this.hp = hp;
     this.hitFlash = 0;
     this.dead = false;
+    this.deadTime = 0; // 崩壊演出用
   }
 
   get half() { return this.def.size / 2; }
@@ -22,6 +23,7 @@ export class Castle {
     if (this.dead) return;
     this.hp = Math.max(0, this.hp - amount);
     this.hitFlash = 0.1;
+    battle.fx('castleHit', { x: this.x - this.half, dmg: amount });
     battle.onCastleDamaged(this);
     if (this.hp <= 0) {
       this.dead = true;
@@ -31,5 +33,6 @@ export class Castle {
 
   update(dt) {
     this.hitFlash = Math.max(0, this.hitFlash - dt);
+    if (this.dead) this.deadTime += dt;
   }
 }

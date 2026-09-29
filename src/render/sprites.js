@@ -56,6 +56,12 @@ export function drawUnit(ctx, unit, x, y, scale) {
 
   ctx.save();
   ctx.translate(x + lunge, y - bob);
+  // 出現直後はふわっと現れる
+  if (unit.age < 0.3) {
+    const a = unit.age / 0.3;
+    ctx.globalAlpha = a;
+    ctx.scale(0.6 + 0.4 * a, 0.6 + 0.4 * a);
+  }
   if (unit.dead) {
     const a = Math.max(0, unit.removeTimer / 0.5);
     ctx.globalAlpha = a;
@@ -78,12 +84,26 @@ export function drawUnit(ctx, unit, x, y, scale) {
     const fill = unit.hitFlash > 0 ? '#ffffff' : unit.healFlash > 0 ? '#b9ffc8' : null;
     drawPlaceholder(ctx, def, s, unit.dir, fill, unit.animTime);
   }
-  // 鈍足中は青い氷のマーク
+  // 鈍足中は青いもやと、周りを回る氷の結晶
   if (unit.slowed && !unit.dead) {
-    ctx.fillStyle = 'rgba(120,200,255,.35)';
+    ctx.fillStyle = 'rgba(120,200,255,.25)';
     ctx.beginPath();
     ctx.arc(0, -s / 2, s * 0.62, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#d9f4ff';
+    ctx.strokeStyle = 'rgba(40,120,180,.8)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const a = unit.animTime * 2.5 + (i * Math.PI * 2) / 3;
+      const cx = Math.cos(a) * s * 0.55;
+      const cy = -s / 2 + Math.sin(a) * s * 0.2;
+      const r = Math.max(2, s * 0.09);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r * 1.6); ctx.lineTo(cx + r, cy); ctx.lineTo(cx, cy + r * 1.6); ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }

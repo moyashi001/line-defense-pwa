@@ -46,6 +46,9 @@ function startBattle(stage) {
 
 function onBattleEvent(type, payload) {
   switch (type) {
+    case 'fx':
+      renderer.fx.emit(payload);
+      break;
     case 'wave':
       if (!battle?.bossWarning) ui.showBanner(`WAVE ${payload.count}`, '#fff', 1200);
       break;
@@ -54,17 +57,20 @@ function onBattleEvent(type, payload) {
       renderer.shake(3, 2.5);
       break;
     case 'bossSpawn':
-      ui.showBanner(`${payload.def.name} 出現！`, '#ff4d4d', 1500, true);
+      ui.showBanner(`${payload.def.name} 出現！`, '#ff4d4d', 1800, true);
       renderer.shake(10, 0.8);
+      renderer.fx.emit({ kind: 'bossSpawn', x: payload.x, laneY: payload.laneY });
       break;
     case 'bossAttack':
       renderer.shake(5, 0.25);
       break;
     case 'castleDestroyed':
-      renderer.shake(8, 1);
+      renderer.shake(8, 1.2);
+      renderer.fx.emit({ kind: 'castleDestroyed', x: payload.x });
       break;
     case 'end':
       ui.showBanner(payload.win ? 'CLEAR!' : 'DEFEAT...', payload.win ? '#ffcf3f' : '#ff6b6b', 0);
+      renderer.fx.emit({ kind: 'end', win: payload.win });
       break;
   }
 }
@@ -125,8 +131,10 @@ screens.register('battle', {
     ui.buildDeck(deck);
     battle = new Battle(currentStage, { onEvent: onBattleEvent, onEnd: onBattleEnd }, { deck, levels: Progress.levels() });
     // レイアウト確定後にサイズを取る
+    renderer.fx.reset(currentStage.theme);
     requestAnimationFrame(() => {
       renderer.resize();
+      renderer.fx.reset(currentStage.theme);
       ui.drawIcons();
     });
     loop.start();

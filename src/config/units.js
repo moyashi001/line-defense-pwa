@@ -14,6 +14,8 @@
 //   heal                  : 周囲の味方を定期回復 { amount, radius, interval }
 //   splitInto             : 倒されると分裂 { type, count }
 //   summon                : 定期的に仲間を呼ぶ { type, count, interval }
+//   projectileStyle       : 飛び道具の見た目 'laser'(即着弾の光線) | 'shell'(砲弾: 発射時に砲口が光る)
+//   attackFx              : 範囲攻撃の見た目 'swing'(振り回す弧) | 'thrust'(突き)。未指定は衝撃の輪
 //   knockbacks            : HPが減る過程で何回ノックバックするか
 //   unlockAfter           : このステージIDをクリアすると解放(味方のみ。未指定は最初から)
 //
@@ -41,20 +43,20 @@ export const ALLY_UNITS = [
     id: 'archer', name: 'レーザー', role: '遠距離', label: '光', shape: 'triangle', color: '#ffb74d',
     sprite: 'assets/sprites/archer.png', spriteScale: 1.9,
     size: 24, hp: 70, atk: 26, range: 170, speed: 40, attackInterval: 1.3,
-    attackType: 'ranged', projectileSpeed: 420, projectileColor: '#7dffb0',
+    attackType: 'ranged', projectileStyle: 'laser', projectileColor: '#7dffb0',
     cost: 150, cooldown: 4,
   },
   {
     id: 'lancer', name: 'ランサー', role: '範囲', label: '槍', shape: 'diamond', color: '#ba68c8',
     sprite: 'assets/sprites/lancer.png', spriteScale: 1.7,
     size: 28, hp: 220, atk: 34, range: 45, speed: 42, attackInterval: 1.6,
-    attackType: 'area', cost: 220, cooldown: 7,
+    attackType: 'area', attackFx: 'thrust', cost: 220, cooldown: 7,
   },
   {
     id: 'cannon', name: 'キャノン', role: '砲撃', label: '砲', shape: 'hex', color: '#e57373',
     sprite: 'assets/sprites/cannon.png', spriteScale: 1.6,
     size: 34, hp: 260, atk: 100, range: 280, speed: 22, attackInterval: 3.2,
-    attackType: 'ranged', projectileSpeed: 320, projectileColor: '#333', splash: 60,
+    attackType: 'ranged', projectileStyle: 'shell', projectileSpeed: 320, projectileColor: '#333', splash: 60,
     cost: 450, cooldown: 15,
   },
   {
@@ -84,7 +86,7 @@ export const ALLY_UNITS = [
     id: 'knight', name: 'ナイト', role: '重装', label: '騎', shape: 'square', color: '#ffd54f',
     sprite: 'assets/sprites/knight.png', spriteScale: 1.5,
     size: 38, hp: 1400, atk: 60, range: 14, speed: 28, attackInterval: 1.5, armor: 12,
-    attackType: 'area', knockbacks: 2,
+    attackType: 'area', attackFx: 'swing', knockbacks: 2,
     cost: 600, cooldown: 25, unlockAfter: 15,
   },
 ];

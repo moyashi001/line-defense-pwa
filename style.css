@@ -256,6 +256,15 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 .unit-btn .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: #000a; pointer-events: none; }
 .unit-btn.disabled { filter: grayscale(.8) brightness(.65); }
+.unit-btn.ready { animation: ready-glow .6s ease-out; }
+@keyframes ready-glow {
+  0% { box-shadow: 0 0 0 0 #7cf5ffcc, inset 0 0 12px #7cf5ff; border-color: #7cf5ff; }
+  100% { box-shadow: 0 0 0 10px #7cf5ff00, inset 0 0 0 #7cf5ff00; }
+}
+.cost-box.full { animation: cost-full 1s ease-in-out infinite; }
+@keyframes cost-full { 50% { box-shadow: 0 0 14px #ffd84d; border-color: #ffd84d; } }
+.money-fill.full { animation: money-full 1s ease-in-out infinite; }
+@keyframes money-full { 50% { filter: brightness(1.5); } }
 
 /* ---------- オーバーレイ / パネル ---------- */
 .overlay {
