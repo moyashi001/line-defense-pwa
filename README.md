@@ -14,7 +14,7 @@ http://localhost:8759 を開く（localhost では Service Worker を無効化�
 | `src/config/units.js` | 味方・敵キャラの能力/見た目定義 |
 | `src/config/stages.js` | ステージ・ウェーブ・難易度倍率 |
 | `src/config/constants.js` | ワールド座標・コスト(財布)成長・バージョン |
-| `src/game/` | 戦闘ロジック（Battle / Unit / Projectile）。DOM非依存 |
+| `src/game/` | 戦闘ロジック（Battle / Unit / Projectile / Castle）。DOM非依存 |
 | `src/render/Renderer.js` | 背景・拠点・エフェクトの Canvas 描画 |
 | `src/render/sprites.js` | **キャラ描画（画像差し替えはここ）** |
 | `src/ui/` | 画面遷移・HUD・出撃ボタン |

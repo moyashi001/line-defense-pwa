@@ -155,6 +155,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   transition: opacity .25s, transform .25s;
 }
 .banner.show { opacity: 1; transform: scale(1); }
+.banner.alert.show { animation: blink .35s steps(2, jump-none) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
 
 .deck {
   display: flex; gap: 8px; align-items: stretch;
@@ -169,6 +171,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .cost-box .cost-title { font-size: .72rem; color: var(--muted); font-weight: 700; }
+.cost-box .ally-count { font-size: .62rem; color: var(--muted); font-weight: 700; }
+.cost-box .ally-count.full { color: var(--danger); }
 .cost-box .cost-now { font-size: 1.4rem; color: var(--money); font-weight: 900; font-variant-numeric: tabular-nums; }
 
 .unit-buttons { flex: 1; display: flex; gap: 8px; justify-content: center; min-width: 0; }
@@ -185,6 +189,11 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .unit-btn canvas { width: 36px; height: 36px; }
 .unit-btn .name { font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .unit-btn .cost { font-size: .8rem; font-weight: 900; color: var(--money); }
+.unit-btn .role {
+  position: absolute; top: 2px; left: 3px;
+  font-size: .56rem; font-weight: 700; padding: 0 4px; border-radius: 6px;
+  background: #0006; color: #fff; line-height: 1.4;
+}
 .unit-btn .cd { position: absolute; left: 0; right: 0; top: 0; height: 0; background: #000a; pointer-events: none; }
 .unit-btn.disabled { filter: grayscale(.8) brightness(.65); }
 

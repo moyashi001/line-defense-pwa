@@ -55,7 +55,7 @@ export class Unit {
 
   takeDamage(amount, battle) {
     if (this.dead) return;
-    this.hp -= amount;
+    this.hp -= Math.max(1, amount - (this.def.armor ?? 0));
     this.hitFlash = 0.12;
     if (this.hp <= 0) {
       this.hp = 0;
@@ -132,6 +132,7 @@ export class Unit {
 
   attack(target, battle) {
     this.attackAnim = 0.25;
+    if (this.def.boss) battle.emit('bossAttack', this);
     switch (this.def.attackType) {
       case 'melee':
         target.takeDamage(this.atk, battle);

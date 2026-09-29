@@ -28,7 +28,8 @@ const ui = new BattleUI({
 const loop = new GameLoop((dt) => {
   if (!battle) return;
   if (!paused) battle.update(dt);
-  renderer.render(battle);
+  if (!battle) return; // update 中に結果画面へ遷移した
+  renderer.render(battle, paused ? 0 : dt);
   ui.update(battle);
 });
 
@@ -41,7 +42,21 @@ function startBattle(stage) {
 function onBattleEvent(type, payload) {
   switch (type) {
     case 'wave':
-      ui.showBanner(payload.boss ? '⚠ BOSS WAVE ⚠' : `WAVE ${payload.index + 1}`, payload.boss ? '#ff6b6b' : '#fff');
+      if (!battle?.bossWarning) ui.showBanner(`WAVE ${payload.count}`, '#fff', 1200);
+      break;
+    case 'bossWarning':
+      ui.showBanner('⚠ WARNING ⚠', '#ff4d4d', 2500, true);
+      renderer.shake(3, 2.5);
+      break;
+    case 'bossSpawn':
+      ui.showBanner(`${payload.def.name} 出現！`, '#ff4d4d', 1500, true);
+      renderer.shake(10, 0.8);
+      break;
+    case 'bossAttack':
+      renderer.shake(5, 0.25);
+      break;
+    case 'castleDestroyed':
+      renderer.shake(8, 1);
       break;
     case 'end':
       ui.showBanner(payload.win ? 'CLEAR!' : 'DEFEAT...', payload.win ? '#ffcf3f' : '#ff6b6b', 0);
@@ -133,7 +148,7 @@ async function tryLandscapeFullscreen() {
 if (['localhost', '127.0.0.1'].includes(location.hostname)) {
   window.__debug = {
     get battle() { return battle; },
-    step(sec, dt = 1 / 60) { for (let t = 0; t < sec && battle; t += dt) battle.update(dt); if (battle) { renderer.render(battle); ui.update(battle); } },
+    step(sec, dt = 1 / 60) { for (let t = 0; t < sec && battle; t += dt) battle.update(dt); if (battle) { renderer.render(battle, dt); ui.update(battle); } },
     renderer, ui, screens,
   };
 }

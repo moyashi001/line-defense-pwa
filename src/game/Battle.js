@@ -3,6 +3,7 @@ import { WORLD, GAME, COST } from '../config/constants.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
 import { Unit } from './Unit.js';
 import { Projectile } from './Projectile.js';
+import { Castle } from './Castle.js';
 
 export class Battle {
   /**
@@ -19,6 +20,7 @@ export class Battle {
     this.money = stage.startMoney;
     this.kills = 0;
 
+    this.castle = new Castle(stage.castleHp);
     this.units = [];
     this.projectiles = [];
     this.effects = [];   // 斬撃・爆発などの一時エフェクト
@@ -27,9 +29,14 @@ export class Battle {
     this.allyCooldowns = ALLY_UNITS.map(() => 0);
 
     this.waveIndex = -1;
+    this.waveCount = 0;  // 通算ウェーブ数(最終ウェーブ後はループする)
+    this.looping = false;
     this.waveTime = 0;
     this.spawnQueue = [];
     this.nextWaveTimer = 0;
+
+    this.bossTriggered = false;
+    this.bossWarning = 0; // 警告演出の残り時間
 
     this.result = null;  // { win, time, kills }
     this.endTimer = 0;
@@ -42,17 +49,25 @@ export class Battle {
   get costRate() { return COST.rate; }
   get totalWaves() { return this.stage.waves.length; }
   get isOver() { return this.result !== null; }
+  get allyCount() { return this.units.filter((u) => u.side === 'ally' && u.alive).length; }
+  get allyCap() { return GAME.allyCap; }
+  get boss() { return this.units.find((u) => u.def.boss && u.alive) || null; }
 
-  unitsOfSide(side) { return this.units.filter((u) => u.side === side); }
+  /** 指定陣営の攻撃対象(敵側には城も含む) */
+  unitsOfSide(side) {
+    const list = this.units.filter((u) => u.side === side);
+    if (side === 'enemy' && this.castle.alive) list.push(this.castle);
+    return list;
+  }
   opponentsOf(unit) { return this.unitsOfSide(unit.side === 'ally' ? 'enemy' : 'ally'); }
   aliveEnemies() { return this.units.filter((u) => u.side === 'enemy' && u.alive); }
 
-  /** 前方で最も近い生存中の敵を返す */
+  /** 前方で最も近い生存中の敵(城を含む)を返す */
   findTarget(unit) {
     let best = null;
     let bestGap = Infinity;
-    for (const o of this.units) {
-      if (o.side === unit.side || !o.alive || !unit.isInFront(o)) continue;
+    for (const o of this.opponentsOf(unit)) {
+      if (!o.alive || !unit.isInFront(o)) continue;
       const gap = unit.gapTo(o);
       if (gap < bestGap) { bestGap = gap; best = o; }
     }
@@ -61,7 +76,8 @@ export class Battle {
 
   canSpawnAlly(index) {
     const def = ALLY_UNITS[index];
-    return !!def && !this.isOver && this.allyCooldowns[index] <= 0 && this.money >= def.cost;
+    return !!def && !this.isOver && this.allyCooldowns[index] <= 0 && this.money >= def.cost
+      && this.allyCount < this.allyCap;
   }
 
   // ---------- プレイヤー操作 ----------
@@ -77,44 +93,71 @@ export class Battle {
   // ---------- ウェーブ ----------
   startWave(i) {
     this.waveIndex = i;
+    this.waveCount += 1;
     this.waveTime = 0;
-    const wave = this.stage.waves[i];
-    this.spawnQueue = wave.spawns
-      .flatMap((g) => Array.from({ length: g.count }, (_, k) => ({ t: g.at + k * g.interval, type: g.type })))
+    this.spawnQueue = this.buildQueue(this.stage.waves[i].spawns, 0);
+    this.emit('wave', { count: this.waveCount });
+  }
+
+  buildQueue(spawns, offset) {
+    return spawns
+      .flatMap((g) => Array.from({ length: g.count }, (_, k) => ({ t: offset + g.at + k * g.interval, type: g.type })))
       .sort((a, b) => a.t - b.t);
-    this.emit('wave', { index: i, total: this.totalWaves, boss: !!wave.boss });
+  }
+
+  /** 次のウェーブへ。最終ウェーブの後は loopFrom から繰り返す(城を壊すまで敵は途切れない) */
+  advanceWave() {
+    let i = this.waveIndex + 1;
+    if (i >= this.totalWaves) {
+      this.looping = true;
+      i = this.stage.loopFrom ?? 0;
+    }
+    this.startWave(i);
   }
 
   spawnEnemy(type) {
     const def = ENEMY_UNITS[type];
     if (!def) return;
-    this.units.push(new Unit(def, 'enemy', WORLD.length - def.size / 2, this.stage.enemyMul));
+    const unit = new Unit(def, 'enemy', WORLD.length - def.size / 2, this.stage.enemyMul);
+    this.units.push(unit);
+    if (def.boss) this.emit('bossSpawn', unit);
   }
 
   updateWaves(dt) {
-    if (this.nextWaveTimer > 0) {
-      this.nextWaveTimer -= dt;
-      if (this.nextWaveTimer <= 0) this.startWave(this.waveIndex + 1);
-      return;
-    }
-
     this.waveTime += dt;
     while (this.spawnQueue.length && this.spawnQueue[0].t <= this.waveTime) {
       this.spawnEnemy(this.spawnQueue.shift().type);
     }
+
+    if (this.nextWaveTimer > 0) {
+      this.nextWaveTimer -= dt;
+      if (this.nextWaveTimer <= 0) this.advanceWave();
+      return;
+    }
     if (this.spawnQueue.length) return;
 
     const cleared = this.aliveEnemies().length === 0;
-    const isLast = this.waveIndex >= this.totalWaves - 1;
-    if (isLast) {
-      if (cleared) this.finish(true);
-    } else if (cleared || this.waveTime > this.stage.waves[this.waveIndex].timeout) {
+    if (cleared || this.waveTime > this.stage.waves[this.waveIndex].timeout) {
       this.nextWaveTimer = GAME.nextWaveDelay;
     }
   }
 
+  /** 城のHPが一定以下になったらボス出現(警告→出現) */
+  checkBossTrigger() {
+    const boss = this.stage.boss;
+    if (!boss || this.bossTriggered) return;
+    if (this.castle.hp / this.castle.maxHp > boss.castleHpRatio) return;
+    this.bossTriggered = true;
+    this.bossWarning = GAME.bossWarningTime;
+    this.spawnQueue.push(...this.buildQueue(boss.spawns, this.waveTime + GAME.bossWarningTime));
+    this.spawnQueue.sort((a, b) => a.t - b.t);
+    this.emit('bossWarning');
+  }
+
   // ---------- 更新 ----------
   update(dt) {
+    this.bossWarning = Math.max(0, this.bossWarning - dt);
+
     if (this.isOver) {
       // 勝敗決定後もしばらく演出を流してから結果画面へ
       this.updateEntities(dt);
@@ -133,11 +176,13 @@ export class Battle {
     this.updateWaves(dt);
     this.updateEntities(dt);
     this.checkBreach();
+    this.checkBossTrigger();
 
     if (this.life <= 0) this.finish(false);
   }
 
   updateEntities(dt) {
+    this.castle.update(dt);
     for (const u of this.units) u.update(dt, this);
     for (const p of this.projectiles) p.update(dt, this);
 
@@ -168,12 +213,13 @@ export class Battle {
   }
 
   finish(win) {
+    if (this.isOver) return;
     this.result = { win, time: this.time, kills: this.kills, stageId: this.stage.id };
     this.endTimer = GAME.endDelay;
     this.emit('end', this.result);
   }
 
-  // ---------- コールバック(Unit / Projectile から呼ばれる) ----------
+  // ---------- コールバック(Unit / Projectile / Castle から呼ばれる) ----------
   onUnitDied(unit) {
     if (unit.side === 'enemy') {
       this.kills += 1;
@@ -183,6 +229,22 @@ export class Battle {
         this.addPopup(unit.x, `+${reward}`, '#ffd84d');
       }
     }
+  }
+
+  onCastleDamaged() {}
+
+  onCastleDestroyed(castle) {
+    // 城が落ちたら残りの敵も消える(撃破数・報酬には数えない)
+    for (const u of this.units) {
+      if (u.side !== 'enemy' || !u.alive) continue;
+      u.dead = true;
+      u.state = 'dying';
+      u.removeTimer = 0.5;
+    }
+    this.spawnQueue = [];
+    this.addExplosion(castle.x, 90);
+    this.emit('castleDestroyed');
+    this.finish(true);
   }
 
   spawnProjectile(owner, target) {

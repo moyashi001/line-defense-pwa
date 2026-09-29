@@ -19,6 +19,7 @@ export class BattleUI {
       moneyFill: $('money-fill'),
       moneyText: $('hud-money'),
       costNow: $('cost-now'),
+      allyCount: $('ally-count'),
       banner: $('battle-banner'),
     };
     this.buttons = [];
@@ -32,7 +33,7 @@ export class BattleUI {
     this.buttons = ALLY_UNITS.map((def, i) => {
       const btn = document.createElement('button');
       btn.className = 'unit-btn';
-      btn.innerHTML = `<canvas></canvas><span class="name">${def.name}</span><span class="cost">${def.cost}</span><div class="cd"></div>`;
+      btn.innerHTML = `<span class="role">${def.role}</span><canvas></canvas><span class="name">${def.name}</span><span class="cost">${def.cost}</span><div class="cd"></div>`;
       // タップ反応を速くするため pointerdown を使う
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
@@ -63,7 +64,7 @@ export class BattleUI {
     const { el } = this;
     this.setText('life', el.life, '♥'.repeat(battle.life) + '♡'.repeat(battle.maxLife - battle.life));
     this.setText('stage', el.stage, `STAGE ${battle.stage.id}`);
-    this.setText('wave', el.wave, `WAVE ${Math.min(battle.waveIndex + 1, battle.totalWaves)}/${battle.totalWaves}`);
+    this.setText('wave', el.wave, `WAVE ${battle.waveCount}`);
     this.setText('time', el.time, formatTime(battle.time));
 
     const money = Math.floor(battle.money);
@@ -71,6 +72,8 @@ export class BattleUI {
     el.moneyFill.style.width = `${(battle.money / battle.costMax) * 100}%`;
 
     this.setText('costNow', el.costNow, String(money));
+    this.setText('allyCount', el.allyCount, `出撃 ${battle.allyCount}/${battle.allyCap}`);
+    el.allyCount.classList.toggle('full', battle.allyCount >= battle.allyCap);
 
     this.buttons.forEach((b, i) => {
       const cd = battle.allyCooldowns[i];
@@ -79,10 +82,11 @@ export class BattleUI {
     });
   }
 
-  showBanner(text, color = '#fff', duration = 1500) {
+  showBanner(text, color = '#fff', duration = 1500, alert = false) {
     const { banner } = this.el;
     banner.textContent = text;
     banner.style.color = color;
+    banner.classList.toggle('alert', alert);
     banner.classList.add('show');
     clearTimeout(this._bannerTimer);
     if (duration > 0) this._bannerTimer = setTimeout(() => this.hideBanner(), duration);

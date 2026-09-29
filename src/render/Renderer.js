@@ -8,6 +8,8 @@ export class Renderer {
     this.ctx = canvas.getContext('2d');
     this.w = 0;
     this.h = 0;
+    this.shakeTime = 0;
+    this.shakePower = 0;
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -26,16 +28,30 @@ export class Renderer {
     this.groundY = this.h * 0.8;
   }
 
+  /** 画面を揺らす(power: 最大ずれ幅px, duration: 秒) */
+  shake(power, duration) {
+    if (power >= this.shakePower || this.shakeTime <= 0) this.shakePower = power;
+    this.shakeTime = Math.max(this.shakeTime, duration);
+  }
+
   toScreenX(x) { return x * this.sx; }
   toScreenY(laneY) { return this.groundY + laneY * this.k; }
 
-  render(battle) {
+  render(battle, dt = 0) {
     if (!this.w) this.resize();
     const { ctx } = this;
     const theme = battle.stage.theme;
 
+    // 画面揺れ
+    this.shakeTime = Math.max(0, this.shakeTime - dt);
+    ctx.save();
+    if (this.shakeTime > 0) {
+      const p = this.shakePower * Math.min(1, this.shakeTime * 3);
+      ctx.translate((Math.random() - 0.5) * 2 * p, (Math.random() - 0.5) * 2 * p);
+    }
+
     this.drawBackground(theme);
-    this.drawGate();
+    this.drawCastle(battle.castle);
     this.drawBase(battle);
 
     // 奥(laneY小)→手前の順に描画
@@ -51,6 +67,10 @@ export class Renderer {
     for (const p of battle.projectiles) this.drawProjectile(p);
     for (const e of battle.effects) this.drawEffect(e);
     for (const p of battle.popups) this.drawPopup(p);
+    ctx.restore();
+
+    this.drawBossOverlay(battle);
+    this.drawTopBars(battle);
   }
 
   drawBackground(theme) {
@@ -106,16 +126,101 @@ export class Renderer {
     }
   }
 
-  drawGate() {
+  drawCastle(castle) {
     const { ctx, k, groundY } = this;
-    const x0 = this.toScreenX(WORLD.enemyGateX);
-    const hgt = 90 * k;
-    ctx.fillStyle = '#3b2a3f';
-    ctx.fillRect(x0, groundY - hgt, this.w - x0, hgt + 16 * k);
+    const x0 = this.toScreenX(castle.x - castle.half);
+    const w = this.w - x0 + 20;
+    const ratio = castle.hp / castle.maxHp;
+    // 壊れるほど低くなる
+    const hgt = (castle.alive ? 70 + 60 * ratio : 30) * k;
+    const top = groundY - hgt;
+
+    ctx.fillStyle = castle.hitFlash > 0 ? '#8a6a8f' : '#3b2a3f';
+    ctx.fillRect(x0, top, w, hgt + 16 * k);
+    // 胸壁
+    ctx.fillStyle = '#4e3a55';
+    const m = w / 5;
+    for (let i = 0; i < 5; i += 2) ctx.fillRect(x0 + i * m, top - 10 * k, m, 10 * k);
+    // 門
     ctx.fillStyle = '#12091a';
     ctx.beginPath();
-    ctx.ellipse(x0 + (this.w - x0) / 2, groundY - hgt * 0.35, (this.w - x0) * 0.35, hgt * 0.35, 0, 0, Math.PI * 2);
+    ctx.ellipse(x0 + w * 0.42, groundY - 18 * k, w * 0.26, 26 * k, 0, Math.PI, 0);
     ctx.fill();
+    ctx.fillRect(x0 + w * 0.16, groundY - 18 * k, w * 0.52, 18 * k + 16 * k);
+    // 旗
+    if (castle.alive) {
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0 + w * 0.4, top - 10 * k);
+      ctx.lineTo(x0 + w * 0.4, top - 40 * k);
+      ctx.stroke();
+      ctx.fillStyle = '#e53935';
+      ctx.fillRect(x0 + w * 0.4 - 18 * k, top - 40 * k, 18 * k, 12 * k);
+    }
+    // ヒビ
+    if (ratio < 0.66) {
+      ctx.strokeStyle = 'rgba(0,0,0,.5)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x0 + w * 0.2, top + 8 * k);
+      ctx.lineTo(x0 + w * 0.3, top + 30 * k);
+      ctx.lineTo(x0 + w * 0.22, top + 50 * k);
+      if (ratio < 0.33) {
+        ctx.moveTo(x0 + w * 0.7, top + 4 * k);
+        ctx.lineTo(x0 + w * 0.6, top + 26 * k);
+        ctx.lineTo(x0 + w * 0.72, top + 44 * k);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /** ボス警告中・ボス存在中の赤い点滅 */
+  drawBossOverlay(battle) {
+    const { ctx, w, h } = this;
+    let a = 0;
+    if (battle.bossWarning > 0) a = 0.25 + 0.2 * Math.sin(battle.bossWarning * 14);
+    else if (battle.boss) a = 0.08 + 0.05 * Math.sin(battle.time * 4);
+    if (a <= 0) return;
+    const g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.7);
+    g.addColorStop(0, 'rgba(255,0,0,0)');
+    g.addColorStop(1, `rgba(255,0,0,${a})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  /** 画面上部の 敵城HP / ボスHP バー */
+  drawTopBars(battle) {
+    const castle = battle.castle;
+    const barW = Math.min(220, this.w * 0.3);
+    this.drawBar(this.w - barW - 10, 8, barW, '敵の城', castle.hp, castle.maxHp, '#e57373');
+    const boss = battle.boss;
+    if (boss) {
+      const bw = Math.min(360, this.w * 0.42);
+      this.drawBar(Math.max(60, this.w * 0.62 - 20 - bw), 8, bw, boss.def.name, boss.hp, boss.maxHp, '#ff3d3d');
+    }
+  }
+
+  drawBar(x, y, w, label, hp, max, color) {
+    const { ctx } = this;
+    const h = 10;
+    ctx.save();
+    ctx.font = '700 11px sans-serif';
+    ctx.textBaseline = 'top';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(0,0,0,.7)';
+    ctx.fillStyle = '#fff';
+    const text = `${label}  ${Math.ceil(hp)} / ${max}`;
+    ctx.strokeText(text, x, y);
+    ctx.fillText(text, x, y);
+    ctx.fillStyle = 'rgba(0,0,0,.55)';
+    ctx.fillRect(x, y + 15, w, h);
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y + 15, w * Math.max(0, hp / max), h);
+    ctx.strokeStyle = 'rgba(255,255,255,.5)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 15.5, w - 1, h - 1);
+    ctx.restore();
   }
 
   drawShadow(x, y, size) {
