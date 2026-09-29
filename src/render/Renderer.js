@@ -36,6 +36,8 @@ export class Renderer {
 
   toScreenX(x) { return x * this.sx; }
   toScreenY(laneY) { return this.groundY + laneY * this.k; }
+  /** 飛行ユニットの浮き上がり量(px) */
+  flyOffset(u) { return u.def?.flying ? (46 + Math.sin(u.animTime * 3) * 5) * this.k : 0; }
 
   render(battle, dt = 0) {
     if (!this.w) this.resize();
@@ -59,8 +61,8 @@ export class Renderer {
     for (const u of units) {
       const x = this.toScreenX(u.x);
       const y = this.toScreenY(u.laneY);
-      this.drawShadow(x, y, u.def.size * this.k);
-      drawUnit(ctx, u, x, y, this.k);
+      this.drawShadow(x, y, u.def.size * this.k * (u.flying ? 0.6 : 1));
+      drawUnit(ctx, u, x, y - this.flyOffset(u), this.k);
     }
     for (const u of units) if (u.alive && u.hp < u.maxHp) this.drawHpBar(u);
 
@@ -235,7 +237,7 @@ export class Renderer {
     const { ctx, k } = this;
     const w = Math.max(18, u.def.size * k);
     const x = this.toScreenX(u.x) - w / 2;
-    const y = this.toScreenY(u.laneY) - u.def.size * k - 8 * k;
+    const y = this.toScreenY(u.laneY) - this.flyOffset(u) - u.def.size * k - 8 * k;
     const ratio = u.hp / u.maxHp;
     ctx.fillStyle = 'rgba(0,0,0,.6)';
     ctx.fillRect(x, y, w, 4);
@@ -247,8 +249,20 @@ export class Renderer {
     const { ctx, k } = this;
     const arc = Math.sin(p.progress * Math.PI) * (p.heavy ? 60 : 24) * k;
     const x = this.toScreenX(p.x);
-    const y = this.toScreenY(p.laneY) - 16 * k - arc;
+    const pr = p.progress;
+    const fly = ((p.fromFly ? 1 - pr : 0) + (p.toFly ? pr : 0)) * 46 * k;
+    const y = this.toScreenY(p.laneY) - 16 * k - arc - fly;
     ctx.fillStyle = p.color;
+    if (p.magic) {
+      ctx.save();
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(x, y, 5 * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     ctx.strokeStyle = 'rgba(0,0,0,.6)';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -281,6 +295,14 @@ export class Renderer {
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(x, this.toScreenY(e.laneY) - 16 * k, (12 + p * 24) * k, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+      case 'heal': {
+        ctx.strokeStyle = '#7cff9a';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.ellipse(x, this.groundY, e.radius * this.sx * (0.3 + p * 0.7), 10 * k, 0, 0, Math.PI * 2);
         ctx.stroke();
         break;
       }

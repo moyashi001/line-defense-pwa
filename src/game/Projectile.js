@@ -13,6 +13,10 @@ export class Projectile {
     this.speed = owner.def.projectileSpeed || 400;
     this.color = owner.def.projectileColor || '#fff';
     this.heavy = this.splash > 0;
+    this.hitOpts = owner.hitOpts;
+    this.magic = !!owner.def.pierce;
+    this.fromFly = owner.flying;
+    this.toFly = !!target.def.flying;
     this.done = false;
   }
 
@@ -33,7 +37,7 @@ export class Projectile {
     const foes = battle.unitsOfSide(this.side === 'ally' ? 'enemy' : 'ally');
     if (this.splash) {
       for (const o of foes) {
-        if (o.alive && Math.abs(o.x - this.x) <= this.splash + o.half) o.takeDamage(this.damage, battle);
+        if (o.alive && Math.abs(o.x - this.x) <= this.splash + o.half) o.takeDamage(this.damage, battle, this.hitOpts);
       }
       battle.addExplosion(this.x, this.splash);
       return;
@@ -44,7 +48,7 @@ export class Projectile {
       victim = foes.find((o) => o.alive && Math.abs(o.x - this.x) <= o.half + 10) || null;
     }
     if (victim) {
-      victim.takeDamage(this.damage, battle);
+      victim.takeDamage(this.damage, battle, this.hitOpts);
       battle.addHitEffect(victim.x, { side: this.side, dir: this.dir }, 'hit');
     }
   }

@@ -1,5 +1,5 @@
 // 戦闘の状態とルール(描画・DOMには依存しない)
-import { WORLD, GAME, COST } from '../config/constants.js';
+import { WORLD, GAME, COST, LEVEL } from '../config/constants.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
 import { Unit } from './Unit.js';
 import { Projectile } from './Projectile.js';
@@ -9,10 +9,13 @@ export class Battle {
   /**
    * @param {object} stage stages.js の定義
    * @param {{ onEvent?: (type:string, payload?:any)=>void, onEnd?: (result:object)=>void }} hooks
+   * @param {{ deck?: object[], levels?: Record<string, number> }} [options] 出撃編成とキャラレベル
    */
-  constructor(stage, hooks = {}) {
+  constructor(stage, hooks = {}, options = {}) {
     this.stage = stage;
     this.hooks = hooks;
+    this.deck = options.deck ?? ALLY_UNITS.slice(0, 5);
+    this.levels = options.levels ?? {};
 
     this.time = 0;
     this.life = stage.life;
@@ -26,7 +29,8 @@ export class Battle {
     this.effects = [];   // 斬撃・爆発などの一時エフェクト
     this.popups = [];    // "+15" などの浮き文字
 
-    this.allyCooldowns = ALLY_UNITS.map(() => 0);
+    this.allyCooldowns = this.deck.map(() => 0);
+    this.castleSpawnTimer = stage.castleSpawn?.interval ?? 0;
 
     this.waveIndex = -1;
     this.waveCount = 0;  // 通算ウェーブ数(最終ウェーブ後はループする)
@@ -67,7 +71,7 @@ export class Battle {
     let best = null;
     let bestGap = Infinity;
     for (const o of this.opponentsOf(unit)) {
-      if (!o.alive || !unit.isInFront(o)) continue;
+      if (!o.alive || !unit.canHit(o) || !unit.isInFront(o)) continue;
       const gap = unit.gapTo(o);
       if (gap < bestGap) { bestGap = gap; best = o; }
     }
@@ -75,7 +79,7 @@ export class Battle {
   }
 
   canSpawnAlly(index) {
-    const def = ALLY_UNITS[index];
+    const def = this.deck[index];
     return !!def && !this.isOver && this.allyCooldowns[index] <= 0 && this.money >= def.cost
       && this.allyCount < this.allyCap;
   }
@@ -83,10 +87,11 @@ export class Battle {
   // ---------- プレイヤー操作 ----------
   spawnAlly(index) {
     if (!this.canSpawnAlly(index)) return false;
-    const def = ALLY_UNITS[index];
+    const def = this.deck[index];
     this.money -= def.cost;
     this.allyCooldowns[index] = def.cooldown;
-    this.units.push(new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2));
+    const m = LEVEL.statMul(this.levels[def.id] ?? 1);
+    this.units.push(new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2, { hp: m, atk: m, speed: 1 }));
     return true;
   }
 
@@ -115,10 +120,11 @@ export class Battle {
     this.startWave(i);
   }
 
-  spawnEnemy(type) {
+  spawnEnemy(type, x = null) {
     const def = ENEMY_UNITS[type];
     if (!def) return;
-    const unit = new Unit(def, 'enemy', WORLD.length - def.size / 2, this.stage.enemyMul);
+    const px = x == null ? WORLD.length - def.size / 2 : Math.min(x, WORLD.length - def.size / 2);
+    const unit = new Unit(def, 'enemy', px, this.stage.enemyMul);
     this.units.push(unit);
     if (def.boss) this.emit('bossSpawn', unit);
   }
@@ -136,9 +142,21 @@ export class Battle {
     }
     if (this.spawnQueue.length) return;
 
-    const cleared = this.aliveEnemies().length === 0;
-    if (cleared || this.waveTime > this.stage.waves[this.waveIndex].timeout) {
+    const alive = this.aliveEnemies().length;
+    const timedOut = this.waveTime > this.stage.waves[this.waveIndex].timeout && alive <= GAME.waveHoldEnemies;
+    if (alive === 0 || timedOut) {
       this.nextWaveTimer = GAME.nextWaveDelay;
+    }
+  }
+
+  /** 城からの定期増援(ステージに castleSpawn があるとき) */
+  updateCastleSpawn(dt) {
+    const cs = this.stage.castleSpawn;
+    if (!cs) return;
+    this.castleSpawnTimer -= dt;
+    if (this.castleSpawnTimer <= 0) {
+      this.castleSpawnTimer = cs.interval;
+      this.spawnEnemy(cs.type);
     }
   }
 
@@ -174,6 +192,7 @@ export class Battle {
     this.allyCooldowns = this.allyCooldowns.map((c) => Math.max(0, c - dt));
 
     this.updateWaves(dt);
+    this.updateCastleSpawn(dt);
     this.updateEntities(dt);
     this.checkBreach();
     this.checkBossTrigger();
@@ -214,13 +233,20 @@ export class Battle {
 
   finish(win) {
     if (this.isOver) return;
-    this.result = { win, time: this.time, kills: this.kills, stageId: this.stage.id };
+    this.result = {
+      win, time: this.time, kills: this.kills, stageId: this.stage.id,
+      castleDamage: 1 - this.castle.hp / this.castle.maxHp, // 城に与えたダメージ割合(0〜1)
+    };
     this.endTimer = GAME.endDelay;
     this.emit('end', this.result);
   }
 
   // ---------- コールバック(Unit / Projectile / Castle から呼ばれる) ----------
   onUnitDied(unit) {
+    const split = unit.def.splitInto;
+    if (split && unit.side === 'enemy') {
+      for (let i = 0; i < split.count; i++) this.spawnEnemy(split.type, unit.x + (i - (split.count - 1) / 2) * 18);
+    }
     if (unit.side === 'enemy') {
       this.kills += 1;
       const reward = unit.def.reward ?? 0;
@@ -253,6 +279,10 @@ export class Battle {
 
   addHitEffect(x, source, kind) {
     this.effects.push({ type: kind, x, dir: source.dir, side: source.side, laneY: source.laneY ?? 0, t: 0, life: 0.2 });
+  }
+
+  addHealEffect(x, radius, side) {
+    this.effects.push({ type: 'heal', x, radius, side, t: 0, life: 0.6 });
   }
 
   addExplosion(x, radius) {

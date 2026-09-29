@@ -1,13 +1,13 @@
 // エントリーポイント: 画面遷移と戦闘の組み立て
-import { APP_VERSION } from './config/constants.js';
+import { APP_VERSION, REWARD } from './config/constants.js';
 import { STAGES } from './config/stages.js';
-import { ALLY_UNITS, ENEMY_UNITS } from './config/units.js';
+import { ALLY_UNITS, ENEMY_UNITS, allyById } from './config/units.js';
 import { Progress } from './core/storage.js';
 import { GameLoop } from './core/loop.js';
 import { Battle } from './game/Battle.js';
 import { Renderer } from './render/Renderer.js';
 import { preloadSprites } from './render/sprites.js';
-import { ScreenManager, renderStageList, renderResult } from './ui/screens.js';
+import { ScreenManager, renderStageList, renderTeam, renderResult, unitsUnlockedBy } from './ui/screens.js';
 import { BattleUI } from './ui/battleUI.js';
 
 const $ = (id) => document.getElementById(id);
@@ -65,9 +65,20 @@ function onBattleEvent(type, payload) {
 }
 
 function onBattleEnd(result) {
-  if (result.win) Progress.markCleared(currentStage.id, result.time);
-  const idx = STAGES.indexOf(currentStage);
-  renderResult(result, currentStage, idx < STAGES.length - 1);
+  const stage = currentStage;
+  const firstClear = result.win && !Progress.isCleared(stage.id);
+  let xp;
+  if (result.win) {
+    xp = REWARD.clear(stage.id) * (firstClear ? REWARD.firstClearMul : 1);
+    Progress.markCleared(stage.id, result.time);
+  } else {
+    xp = REWARD.clear(stage.id) * REWARD.loseRate * result.castleDamage;
+  }
+  xp = Math.round(xp);
+  Progress.addXp(xp);
+  const unlocked = firstClear ? unitsUnlockedBy(stage.id) : [];
+  const idx = STAGES.indexOf(stage);
+  renderResult(result, stage, { hasNext: idx < STAGES.length - 1, xp, unlocked });
   screens.show('result');
 }
 
@@ -83,11 +94,17 @@ screens.register('select', {
   enter: () => renderStageList(startBattle),
 });
 
+screens.register('team', {
+  enter: () => renderTeam(),
+});
+
 screens.register('battle', {
   enter: () => {
     setPaused(false);
     ui.reset();
-    battle = new Battle(currentStage, { onEvent: onBattleEvent, onEnd: onBattleEnd });
+    const deck = Progress.deck().map(allyById);
+    ui.buildDeck(deck);
+    battle = new Battle(currentStage, { onEvent: onBattleEvent, onEnd: onBattleEnd }, { deck, levels: Progress.levels() });
     // レイアウト確定後にサイズを取る
     requestAnimationFrame(() => {
       renderer.resize();
@@ -110,8 +127,11 @@ $('btn-start').addEventListener('click', async () => {
   screens.show('select');
 });
 $('btn-select-back').addEventListener('click', () => screens.show('title'));
+$('btn-team').addEventListener('click', () => screens.show('team'));
+$('btn-team-back').addEventListener('click', () => screens.show('select'));
+$('btn-result-team').addEventListener('click', () => screens.show('team'));
 $('btn-reset').addEventListener('click', () => {
-  if (confirm('クリア状況をすべて消去しますか？')) {
+  if (confirm('クリア状況・経験値・キャラのレベルをすべて消去しますか？')) {
     Progress.reset();
     renderStageList(startBattle);
   }
@@ -149,7 +169,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname)) {
   window.__debug = {
     get battle() { return battle; },
     step(sec, dt = 1 / 60) { for (let t = 0; t < sec && battle; t += dt) battle.update(dt); if (battle) { renderer.render(battle, dt); ui.update(battle); } },
-    renderer, ui, screens,
+    renderer, ui, screens, Progress,
   };
 }
 

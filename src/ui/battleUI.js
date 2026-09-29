@@ -1,5 +1,4 @@
 // 戦闘画面のHUD(上部)とデッキ(下部ボタン)
-import { ALLY_UNITS } from '../config/units.js';
 import { formatTime } from '../core/loop.js';
 import { drawUnitIcon } from '../render/sprites.js';
 
@@ -24,13 +23,13 @@ export class BattleUI {
     };
     this.buttons = [];
     this.cache = {}; // DOM更新を最小限にするための前回値
-    this.buildDeck();
   }
 
-  buildDeck() {
+  /** 出撃ボタンを編成に合わせて作り直す */
+  buildDeck(deck) {
     const wrap = $('unit-buttons');
     wrap.innerHTML = '';
-    this.buttons = ALLY_UNITS.map((def, i) => {
+    this.buttons = deck.map((def, i) => {
       const btn = document.createElement('button');
       btn.className = 'unit-btn';
       btn.innerHTML = `<span class="role">${def.role}</span><canvas></canvas><span class="name">${def.name}</span><span class="cost">${def.cost}</span><div class="cd"></div>`;
@@ -63,7 +62,7 @@ export class BattleUI {
   update(battle) {
     const { el } = this;
     this.setText('life', el.life, '♥'.repeat(battle.life) + '♡'.repeat(battle.maxLife - battle.life));
-    this.setText('stage', el.stage, `STAGE ${battle.stage.id}`);
+    this.setText('stage', el.stage, `STAGE ${battle.stage.label}`);
     this.setText('wave', el.wave, `WAVE ${battle.waveCount}`);
     this.setText('time', el.time, formatTime(battle.time));
 

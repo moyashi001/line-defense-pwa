@@ -28,11 +28,25 @@
     <!-- ステージ選択画面 -->
     <section id="screen-select" class="screen">
       <header class="select-header">
-        <button id="btn-select-back" class="btn btn-ghost">← タイトル</button>
-        <h2>ステージ選択</h2>
-        <button id="btn-reset" class="btn btn-ghost btn-sm">データ消去</button>
+        <button id="btn-select-back" class="btn btn-ghost btn-sm">← タイトル</button>
+        <div id="world-tabs" class="world-tabs"></div>
+        <span id="xp-select" class="xp-badge"></span>
+        <button id="btn-team" class="btn btn-primary btn-sm">編成・強化</button>
       </header>
       <div id="stage-list" class="stage-list"></div>
+      <button id="btn-reset" class="btn btn-ghost btn-sm btn-reset">データ消去</button>
+    </section>
+
+    <!-- 編成・強化画面 -->
+    <section id="screen-team" class="screen">
+      <header class="select-header">
+        <button id="btn-team-back" class="btn btn-ghost btn-sm">← ステージ選択</button>
+        <h2>編成・強化</h2>
+        <span id="deck-count" class="deck-count"></span>
+        <span id="xp-team" class="xp-badge"></span>
+      </header>
+      <div id="team-grid" class="team-grid"></div>
+      <div id="team-message" class="team-message"></div>
     </section>
 
     <!-- 戦闘画面 -->
@@ -76,10 +90,13 @@
           <dt>ステージ</dt><dd id="result-stage"></dd>
           <dt>クリアタイム</dt><dd id="result-time"></dd>
           <dt>撃破数</dt><dd id="result-kills"></dd>
+          <dt>獲得EXP</dt><dd id="result-xp" class="xp-text"></dd>
         </dl>
+        <p id="result-unlock" class="result-unlock"></p>
         <div class="result-actions">
           <button id="btn-next" class="btn btn-primary">次のステージへ</button>
           <button id="btn-retry" class="btn">もう一度</button>
+          <button id="btn-result-team" class="btn">編成・強化</button>
           <button id="btn-to-select" class="btn btn-ghost">ステージ選択へ</button>
         </div>
       </div>

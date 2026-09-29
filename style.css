@@ -88,14 +88,25 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 /* ---------- ステージ選択 ---------- */
 #screen-select { flex-direction: column; background: linear-gradient(var(--bg), var(--bg-2)); }
 .select-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px;
 }
+.select-header h2 { flex: 1; }
+.world-tabs { flex: 1; display: flex; gap: 6px; justify-content: center; min-width: 0; overflow-x: auto; }
+.world-tab {
+  border: 2px solid #fff3; background: var(--bg-2); border-radius: 10px;
+  padding: 6px 12px; font-weight: 700; font-size: .85rem; white-space: nowrap; cursor: pointer;
+}
+.world-tab.active { background: var(--accent); color: var(--accent-text); }
+.world-tab:disabled { opacity: .45; cursor: not-allowed; }
+.xp-badge { color: #7cf5ff; font-weight: 900; font-size: .85rem; white-space: nowrap; }
+.xp-text { color: #7cf5ff; }
+.btn-reset { position: absolute; left: calc(12px + var(--safe-l)); bottom: calc(6px + var(--safe-b)); font-size: .7rem; opacity: .6; }
 .select-header h2 { margin: 0; font-size: 1.3rem; }
 .stage-list {
   flex: 1;
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   justify-content: center;
   padding: 8px 16px 16px;
@@ -103,8 +114,8 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 .stage-card {
   position: relative;
   flex: 1 1 0;
-  max-width: 240px;
-  height: min(62vh, 260px);
+  max-width: 200px;
+  height: min(62vh, 250px);
   border: 3px solid #fff4;
   border-radius: 18px;
   padding: 14px;
@@ -116,8 +127,9 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 }
 .stage-card:active { transform: scale(.97); }
 .stage-card .stage-no { font-size: .85rem; color: #fffc; font-weight: 700; }
-.stage-card .stage-name { font-size: 1.4rem; font-weight: 900; text-shadow: 0 2px 0 #0005; }
-.stage-card .stage-desc { font-size: .8rem; color: #fffd; }
+.stage-card.boss { border-color: #ff8a80; }
+.stage-card .stage-name { font-size: 1.1rem; font-weight: 900; text-shadow: 0 2px 0 #0005; }
+.stage-card .stage-desc { font-size: .72rem; color: #fffd; }
 .stage-card .stage-status { font-size: .85rem; font-weight: 700; }
 .stage-card.cleared .stage-status { color: var(--accent); }
 .stage-card.locked { filter: grayscale(1) brightness(.5); cursor: not-allowed; }
@@ -125,6 +137,39 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
   position: absolute; inset: 0; display: grid; place-items: center;
   font-size: 2.6rem; background: #0005;
 }
+
+/* ---------- 編成・強化 ---------- */
+#screen-team { flex-direction: column; background: linear-gradient(var(--bg), var(--bg-2)); }
+.deck-count { font-weight: 700; color: var(--accent); }
+.team-grid {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px;
+  padding: 4px 16px 16px; align-content: start;
+  -webkit-user-select: none;
+}
+.team-card {
+  background: var(--panel); border: 2px solid #fff2; border-radius: 14px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px; min-height: 120px;
+}
+.team-card.in-deck { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.team-card.locked { opacity: .5; justify-content: center; }
+.team-lock { text-align: center; font-size: .8rem; line-height: 1.6; }
+.team-head { display: flex; gap: 8px; align-items: center; }
+.team-icon { width: 40px; height: 40px; flex-shrink: 0; }
+.team-name { font-weight: 900; font-size: .95rem; }
+.team-role { font-size: .65rem; background: #0005; border-radius: 6px; padding: 1px 5px; font-weight: 700; }
+.team-lv { font-size: .8rem; color: var(--accent); font-weight: 700; }
+.team-stats { display: grid; grid-template-columns: 1fr 1fr; font-size: .72rem; color: var(--muted); }
+.team-actions { display: flex; gap: 6px; }
+.team-actions .btn { flex: 1; padding: 6px 4px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.team-message {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+  background: #000c; padding: 8px 16px; border-radius: 10px; font-size: .85rem;
+  opacity: 0; transition: opacity .2s; pointer-events: none;
+}
+.team-message.show { opacity: 1; }
+.result-unlock { margin: 0; color: var(--accent); font-weight: 700; font-size: .85rem; text-align: center; }
 
 /* ---------- 戦闘画面 ---------- */
 #screen-battle { flex-direction: column; background: #000; }

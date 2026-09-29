@@ -8,7 +8,7 @@ export class Unit {
    * @param {object} def   units.js の定義
    * @param {'ally'|'enemy'} side
    * @param {number} x     ワールド座標
-   * @param {{hp:number, atk:number, speed:number}} mul 能力倍率
+   * @param {{hp:number, atk:number, speed:number}} mul 能力倍率(ステージ難易度・キャラレベル)
    */
   constructor(def, side, x, mul = { hp: 1, atk: 1, speed: 1 }) {
     this.id = nextId++;
@@ -21,9 +21,14 @@ export class Unit {
     this.maxHp = Math.round(def.hp * mul.hp);
     this.hp = this.maxHp;
     this.atk = Math.round(def.atk * mul.atk);
-    this.speed = def.speed * mul.speed;
+    this.speed = def.speed * (mul.speed ?? 1);
 
     this.cooldown = 0.2;
+    this.healTimer = def.heal?.interval ?? 0;
+    this.summonTimer = def.summon?.interval ?? 0;
+    this.slowTimer = 0;
+    this.slowFactor = 1;
+
     this.state = 'walk'; // walk | attack | idle | knockback | dying
     this.dead = false;
     this.removeTimer = 0;
@@ -32,6 +37,7 @@ export class Unit {
     this.animTime = Math.random() * 10;
     this.attackAnim = 0;
     this.hitFlash = 0;
+    this.healFlash = 0;
 
     // HPがしきい値を下回るたびにノックバック
     const kb = def.knockbacks ?? 1;
@@ -42,6 +48,8 @@ export class Unit {
   get half() { return this.def.size / 2; }
   get alive() { return !this.dead; }
   get frontX() { return this.x + this.dir * this.half; }
+  get flying() { return !!this.def.flying; }
+  get slowed() { return this.slowTimer > 0; }
 
   /** 相手との隙間(体の端どうしの距離) */
   gapTo(other) {
@@ -53,10 +61,22 @@ export class Unit {
     return (other.x - this.x) * this.dir > -(this.half + other.half);
   }
 
-  takeDamage(amount, battle) {
+  /** 飛行している相手は、飛び道具か飛行ユニットでしか攻撃できない */
+  canHit(other) {
+    return !other.def.flying || this.def.attackType === 'ranged' || this.flying;
+  }
+
+  /**
+   * @param {number} amount
+   * @param {object} battle
+   * @param {{pierce?:boolean, slow?:{factor:number,duration:number}}} [opts]
+   */
+  takeDamage(amount, battle, opts = {}) {
     if (this.dead) return;
-    this.hp -= Math.max(1, amount - (this.def.armor ?? 0));
+    const armor = opts.pierce ? 0 : (this.def.armor ?? 0);
+    this.hp -= Math.max(1, amount - armor);
     this.hitFlash = 0.12;
+    if (opts.slow) this.applySlow(opts.slow);
     if (this.hp <= 0) {
       this.hp = 0;
       this.die(battle);
@@ -73,6 +93,18 @@ export class Unit {
     }
   }
 
+  applySlow({ factor, duration }) {
+    this.slowFactor = Math.min(this.slowFactor, factor);
+    this.slowTimer = Math.max(this.slowTimer, duration);
+  }
+
+  heal(amount) {
+    if (this.dead || this.hp >= this.maxHp) return false;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    this.healFlash = 0.4;
+    return true;
+  }
+
   die(battle) {
     this.dead = true;
     this.state = 'dying';
@@ -83,6 +115,7 @@ export class Unit {
   update(dt, battle) {
     this.animTime += dt;
     this.hitFlash = Math.max(0, this.hitFlash - dt);
+    this.healFlash = Math.max(0, this.healFlash - dt);
     this.attackAnim = Math.max(0, this.attackAnim - dt);
 
     if (this.dead) {
@@ -90,7 +123,15 @@ export class Unit {
       return;
     }
 
-    this.cooldown -= dt;
+    // 鈍足中は移動も攻撃間隔も遅くなる
+    if (this.slowTimer > 0) {
+      this.slowTimer -= dt;
+      if (this.slowTimer <= 0) this.slowFactor = 1;
+    }
+    const tdt = dt * this.slowFactor;
+
+    this.cooldown -= tdt;
+    this.updateSupport(tdt, battle);
 
     if (this.state === 'knockback') {
       this.kbTimer -= dt;
@@ -112,8 +153,32 @@ export class Unit {
 
     // 前進
     this.state = 'walk';
-    this.x += this.dir * this.speed * dt;
+    this.x += this.dir * this.speed * tdt;
     if (this.clampPosition()) this.state = 'idle';
+  }
+
+  /** 回復・召喚など、攻撃とは別に定期的に行う行動 */
+  updateSupport(dt, battle) {
+    const { heal, summon } = this.def;
+    if (heal) {
+      this.healTimer -= dt;
+      if (this.healTimer <= 0) {
+        this.healTimer = heal.interval;
+        const amount = Math.round(heal.amount * (this.atk / this.def.atk || 1));
+        let healed = false;
+        for (const f of battle.units) {
+          if (f.side === this.side && Math.abs(f.x - this.x) <= heal.radius && f.heal(amount)) healed = true;
+        }
+        if (healed) battle.addHealEffect(this.x, heal.radius, this.side);
+      }
+    }
+    if (summon && this.side === 'enemy') {
+      this.summonTimer -= dt;
+      if (this.summonTimer <= 0) {
+        this.summonTimer = summon.interval;
+        for (let i = 0; i < summon.count; i++) battle.spawnEnemy(summon.type, this.x + 20 + i * 12);
+      }
+    }
   }
 
   /** 移動範囲の制限。止められたら true */
@@ -130,18 +195,22 @@ export class Unit {
     return false;
   }
 
+  get hitOpts() {
+    return { pierce: !!this.def.pierce, slow: this.def.slowOnHit };
+  }
+
   attack(target, battle) {
     this.attackAnim = 0.25;
     if (this.def.boss) battle.emit('bossAttack', this);
     switch (this.def.attackType) {
       case 'melee':
-        target.takeDamage(this.atk, battle);
+        target.takeDamage(this.atk, battle, this.hitOpts);
         battle.addHitEffect(target.x, this, 'slash');
         break;
       case 'area': {
         const reach = this.def.range;
         for (const o of battle.opponentsOf(this)) {
-          if (o.alive && this.isInFront(o) && this.gapTo(o) <= reach) o.takeDamage(this.atk, battle);
+          if (o.alive && this.canHit(o) && this.isInFront(o) && this.gapTo(o) <= reach) o.takeDamage(this.atk, battle, this.hitOpts);
         }
         battle.addHitEffect(this.frontX + this.dir * reach * 0.5, this, 'area');
         break;

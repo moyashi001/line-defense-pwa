@@ -1,64 +1,154 @@
-// ステージ定義
-//   castleHp : 敵の城のHP。城を壊すとクリア
-//   enemyMul : 敵ステータス倍率(難易度調整)
-//   waves    : spawns の各グループは wave 開始から at 秒後に interval 秒おきに count 体出現
-//   timeout  : 全員出現後、敵が残っていてもこの秒数を過ぎたら次のウェーブへ
-//   loopFrom : 最終ウェーブの後はこの番号(0始まり)のウェーブから繰り返す
-//   boss     : 城のHPが castleHpRatio 以下になると警告のあと spawns が出現
+// ステージ定義: 4ワールド × 5ステージ = 20ステージ
+//
+// ステージのデータは WORLDS から自動生成する。
+//   pool     : そのワールドで出る敵。from = ワールド内の何面目(0始まり)から出るか
+//              base = 1グループの基本数, interval = 出現間隔(秒)
+//   boss     : 5面目で城のHPが 60% 以下になると出現
+//   overrides: 特定ステージだけ値を上書きしたいとき { [ワールド内番号]: {...} }
+//
+// 生成後のステージの形:
+//   castleHp / life / startMoney / enemyMul / waves / loopFrom / boss / castleSpawn
+//   waves の各グループは wave 開始から at 秒後に interval 秒おきに count 体出現
 
-export const STAGES = [
+export const STAGES_PER_WORLD = 5;
+
+export const WORLDS = [
   {
     id: 1,
-    name: 'はじまりの草原',
-    desc: '敵の城を壊せばクリア。スライムとゴブリンが攻めてくる。',
+    name: '草原',
     theme: { sky: ['#7ec8f2', '#d9f3ff'], ground: '#6fbf4a', groundDark: '#4e9a33', card: '#3f8f3a' },
     life: 10,
-    castleHp: 2500,
-    startMoney: 150,
-    enemyMul: { hp: 1, atk: 1, speed: 1 },
-    loopFrom: 1,
-    waves: [
-      { timeout: 25, spawns: [{ type: 'slime', count: 5, interval: 3, at: 1 }] },
-      { timeout: 25, spawns: [{ type: 'slime', count: 5, interval: 2, at: 0 }, { type: 'goblin', count: 3, interval: 3, at: 3 }] },
-      { timeout: 30, spawns: [{ type: 'goblin', count: 6, interval: 1.5, at: 0 }, { type: 'slime', count: 8, interval: 1.2, at: 2 }] },
+    names: ['はじまりの草原', '風の丘', 'スライム沼', '小川の橋', '草原の主'],
+    pool: [
+      { type: 'slime', base: 4, interval: 2.2, from: 0 },
+      { type: 'goblin', base: 3, interval: 2, from: 1 },
+      { type: 'bigSlime', base: 1, interval: 5, from: 2 },
     ],
+    boss: { type: 'giantSlime', escort: 'slime' },
   },
   {
     id: 2,
-    name: '灼熱の砂漠',
-    desc: '装甲の固いオークには範囲・遠距離攻撃が有効。ホネ弓兵は遠くから撃ってくる。',
+    name: '砂漠',
     theme: { sky: ['#f7b267', '#fde2b8'], ground: '#e0b35a', groundDark: '#b8893a', card: '#b8742a' },
     life: 8,
-    castleHp: 5000,
-    startMoney: 200,
-    enemyMul: { hp: 1.4, atk: 1.3, speed: 1.1 },
-    loopFrom: 1,
-    waves: [
-      { timeout: 25, spawns: [{ type: 'goblin', count: 5, interval: 2, at: 1 }, { type: 'slime', count: 5, interval: 1.6, at: 2 }] },
-      { timeout: 30, spawns: [{ type: 'orc', count: 2, interval: 6, at: 0 }, { type: 'slime', count: 8, interval: 1.2, at: 2 }] },
-      { timeout: 30, spawns: [{ type: 'skeletonArcher', count: 4, interval: 3, at: 0 }, { type: 'goblin', count: 8, interval: 1.4, at: 1 }] },
-      { timeout: 35, spawns: [{ type: 'orc', count: 3, interval: 6, at: 0 }, { type: 'skeletonArcher', count: 4, interval: 3, at: 3 }, { type: 'goblin', count: 8, interval: 1.2, at: 5 }] },
+    names: ['砂の入口', '灼熱の砂丘', 'オアシス', '骨の谷', 'オーク王の砦'],
+    pool: [
+      { type: 'goblin', base: 4, interval: 1.6, from: 0 },
+      { type: 'orc', base: 1, interval: 6, from: 0 },
+      { type: 'skeletonArcher', base: 2, interval: 3, from: 1 },
+      { type: 'shieldbearer', base: 1, interval: 5, from: 2 },
     ],
+    boss: { type: 'orcKing', escort: 'goblin' },
   },
   {
     id: 3,
+    name: '雪山',
+    theme: { sky: ['#b3c7de', '#eef4fb'], ground: '#e8eef5', groundDark: '#b7c4d3', card: '#5b7fa6' },
+    life: 7,
+    names: ['雪山のふもと', '氷の洞窟', '吹雪の峠', 'コウモリの巣', '氷の巨人'],
+    pool: [
+      { type: 'bat', base: 3, interval: 2, from: 0 },
+      { type: 'goblin', base: 4, interval: 1.4, from: 0 },
+      { type: 'iceSprite', base: 2, interval: 3, from: 1 },
+      { type: 'orc', base: 1, interval: 6, from: 2 },
+      { type: 'skeletonArcher', base: 2, interval: 3, from: 3 },
+    ],
+    boss: { type: 'iceGiant', escort: 'bat' },
+  },
+  {
+    id: 4,
     name: '魔王城',
-    desc: '城にダメージを与えるとドラゴンが現れる。壁役と火力をそろえて挑もう。',
     theme: { sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
     life: 6,
-    castleHp: 8000,
-    startMoney: 300,
-    enemyMul: { hp: 1.6, atk: 1.3, speed: 1.2 },
-    loopFrom: 1,
-    waves: [
-      { timeout: 25, spawns: [{ type: 'goblin', count: 8, interval: 1.2, at: 1 }] },
-      { timeout: 30, spawns: [{ type: 'orc', count: 2, interval: 5, at: 0 }, { type: 'skeletonArcher', count: 4, interval: 2.5, at: 2 }] },
-      { timeout: 30, spawns: [{ type: 'slime', count: 12, interval: 0.8, at: 0 }, { type: 'orc', count: 2, interval: 6, at: 3 }] },
-      { timeout: 35, spawns: [{ type: 'skeletonArcher', count: 5, interval: 2, at: 0 }, { type: 'goblin', count: 10, interval: 1, at: 2 }, { type: 'orc', count: 3, interval: 5, at: 4 }] },
+    names: ['魔界の門', '闇の回廊', '呪いの広間', '竜の間', '魔王の玉座'],
+    pool: [
+      { type: 'shaman', base: 1, interval: 5, from: 0 },
+      { type: 'shieldbearer', base: 2, interval: 4, from: 0 },
+      { type: 'bat', base: 3, interval: 1.8, from: 0 },
+      { type: 'bigSlime', base: 2, interval: 4, from: 1 },
+      { type: 'iceSprite', base: 2, interval: 3, from: 2 },
+      { type: 'orc', base: 2, interval: 5, from: 2 },
     ],
-    boss: {
-      castleHpRatio: 0.6,
-      spawns: [{ type: 'dragon', count: 1, interval: 1, at: 0 }, { type: 'goblin', count: 4, interval: 1.5, at: 1 }],
+    castleSpawn: { type: 'goblin', interval: 10 }, // 城から定期的に増援
+    boss: { type: 'demonLord', escort: 'shaman' },
+    overrides: {
+      3: { boss: { castleHpRatio: 0.6, spawns: [{ type: 'dragon', count: 1, interval: 1, at: 0 }, { type: 'goblin', count: 4, interval: 1.5, at: 1 }] } },
+      4: { boss: { castleHpRatio: 0.6, spawns: [{ type: 'demonLord', count: 1, interval: 1, at: 0 }, { type: 'dragon', count: 1, interval: 1, at: 8 }, { type: 'shaman', count: 2, interval: 3, at: 2 }] } },
     },
   },
 ];
+
+/** 通しステージ番号 n (1〜20) から難易度倍率を計算 */
+function difficulty(n) {
+  return {
+    hp: 1 + 0.08 * (n - 1),
+    atk: 1 + 0.05 * (n - 1),
+    speed: 1 + 0.012 * (n - 1),
+  };
+}
+
+/** ワールドの敵プールからウェーブを組み立てる(毎回同じ内容になる決定的な生成) */
+function buildWaves(world, local) {
+  const pool = world.pool.filter((p) => p.from <= local);
+  const newest = pool.filter((p) => p.from === local);
+  const waveCount = 3 + Math.floor(local / 2);
+  const waves = [];
+  for (let w = 0; w < waveCount; w++) {
+    // メイン: プールを順番に使う。サブ: 新顔がいれば優先、いなければずらして選ぶ
+    const len = pool.length;
+    const main = pool[w % len];
+    let sub = newest.length && w > 0 ? newest[w % newest.length] : null;
+    if (!sub || sub === main) sub = len > 1 ? pool[(w % len + 1 + (local % (len - 1))) % len] : main;
+    // 後半のウェーブほど数が増える。少数精鋭の敵(base が小さい)は増え方もゆるやか
+    const grow = Math.floor((w + local) / 2);
+    const count = (p, g) => p.base + Math.round(g * Math.max(0.35, p.base / 4));
+    const spawns = [{ type: main.type, count: count(main, grow), interval: main.interval, at: 0 }];
+    if (sub !== main) spawns.push({ type: sub.type, count: count(sub, grow / 2), interval: sub.interval, at: 3 });
+    waves.push({ timeout: 26 + w * 2, spawns });
+  }
+  return waves;
+}
+
+function buildStage(world, local) {
+  const n = (world.id - 1) * STAGES_PER_WORLD + local + 1;
+  const isBossStage = local === STAGES_PER_WORLD - 1;
+  const stage = {
+    id: n,
+    worldId: world.id,
+    local,
+    label: `${world.id}-${local + 1}`,
+    name: world.names[local],
+    theme: world.theme,
+    life: world.life,
+    castleHp: 2000 + 350 * (n - 1) + (isBossStage ? 1500 : 0),
+    startMoney: 150 + 10 * n,
+    enemyMul: difficulty(n),
+    loopFrom: 1,
+    waves: buildWaves(world, local),
+    castleSpawn: world.castleSpawn ?? null,
+    boss: isBossStage
+      ? {
+        castleHpRatio: 0.6,
+        spawns: [
+          { type: world.boss.type, count: 1, interval: 1, at: 0 },
+          { type: world.boss.escort, count: 4, interval: 2, at: 1 },
+        ],
+      }
+      : null,
+  };
+  return { ...stage, ...(world.overrides?.[local] ?? {}) };
+}
+
+export const STAGES = WORLDS.flatMap((world) =>
+  Array.from({ length: STAGES_PER_WORLD }, (_, local) => buildStage(world, local)));
+
+/** ステージの説明文(選択画面用): 新しく出てくる敵やボスを紹介 */
+export function stageIntro(stage, enemyDefs) {
+  const world = WORLDS.find((w) => w.id === stage.worldId);
+  const fresh = world.pool.filter((p) => p.from === stage.local).map((p) => enemyDefs[p.type].name);
+  const parts = [];
+  if (fresh.length) parts.push(`新たな敵: ${fresh.join('・')}`);
+  if (stage.boss) parts.push(`ボス: ${enemyDefs[stage.boss.spawns[0].type].name}`);
+  if (stage.castleSpawn && stage.local === 0) parts.push('城から増援が出てくる');
+  return parts.join(' / ') || '敵の城を壊せばクリア';
+}

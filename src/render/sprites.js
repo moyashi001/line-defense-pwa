@@ -56,7 +56,15 @@ export function drawUnit(ctx, unit, x, y, scale) {
       ctx.fillRect(-w / 2, -h, w, h);
     }
   } else {
-    drawPlaceholder(ctx, def, s, unit.dir, unit.hitFlash > 0);
+    const fill = unit.hitFlash > 0 ? '#ffffff' : unit.healFlash > 0 ? '#b9ffc8' : null;
+    drawPlaceholder(ctx, def, s, unit.dir, fill, unit.animTime);
+  }
+  // 鈍足中は青い氷のマーク
+  if (unit.slowed && !unit.dead) {
+    ctx.fillStyle = 'rgba(120,200,255,.35)';
+    ctx.beginPath();
+    ctx.arc(0, -s / 2, s * 0.62, 0, Math.PI * 2);
+    ctx.fill();
   }
   ctx.restore();
 }
@@ -78,15 +86,16 @@ export function drawUnitIcon(canvas, def, dir = 1) {
     if (dir < 0) ctx.scale(-1, 1);
     ctx.drawImage(img, -s / 2, -s, s, s);
   } else {
-    drawPlaceholder(ctx, def, s, dir, false);
+    drawPlaceholder(ctx, def, s, dir, null, 0);
   }
   ctx.restore();
 }
 
 // ---------- プレースホルダー図形 ----------
 // 原点 = 足元中央。上方向がマイナス。
-function drawPlaceholder(ctx, def, s, dir, flash) {
+function drawPlaceholder(ctx, def, s, dir, fillOverride, t) {
   const r = s / 2;
+  if (def.flying) drawWings(ctx, s, t);
   ctx.beginPath();
   switch (def.shape) {
     case 'square':
@@ -119,11 +128,21 @@ function drawPlaceholder(ctx, def, s, dir, flash) {
       ctx.bezierCurveTo(-r, -s * 1.1, r, -s * 1.1, r, 0);
       ctx.closePath();
       break;
+    case 'star':
+      for (let i = 0; i < 10; i++) {
+        const a = -Math.PI / 2 + (Math.PI / 5) * i;
+        const rr = i % 2 === 0 ? r : r * 0.5;
+        const px = Math.cos(a) * rr;
+        const py = -r + Math.sin(a) * rr;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      break;
     case 'circle':
     default:
       ctx.arc(0, -r, r, 0, Math.PI * 2);
   }
-  ctx.fillStyle = flash ? '#ffffff' : def.color;
+  ctx.fillStyle = fillOverride ?? def.color;
   ctx.fill();
   ctx.lineWidth = Math.max(1.5, s * 0.07);
   ctx.strokeStyle = 'rgba(0,0,0,.55)';
@@ -148,6 +167,22 @@ function drawPlaceholder(ctx, def, s, dir, flash) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(def.label, -dir * r * 0.1, -s * 0.34);
+  }
+}
+
+/** 飛行ユニットの羽(羽ばたき) */
+function drawWings(ctx, s, t) {
+  const flap = Math.sin(t * 14) * 0.5 + 0.5;
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.strokeStyle = 'rgba(0,0,0,.4)';
+  ctx.lineWidth = 1;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * s * 0.15, -s * 0.6);
+    ctx.quadraticCurveTo(side * s * 0.8, -s * (0.9 + flap * 0.4), side * s * 0.7, -s * 0.35);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
 }
 

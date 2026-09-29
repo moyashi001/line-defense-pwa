@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.3.0';
+export const APP_VERSION = 'v0.4.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -23,6 +23,7 @@ export const GAME = {
   knockbackSpeed: 150,
   knockbackTime: 0.35,
   allyCap: 15,          // 同時に出撃できる味方の上限
+  waveHoldEnemies: 6,   // 敵がこの数より多く残っている間は、時間切れでも次のウェーブを出さない
   bossWarningTime: 2.5, // ボス出現前の警告時間(秒)
 };
 
@@ -30,4 +31,18 @@ export const GAME = {
 export const COST = {
   max: 1000,   // 上限
   rate: 20,    // 1秒あたりの回復量
+};
+
+// キャラのレベル(経験値で強化)
+export const LEVEL = {
+  max: 10,
+  statMul: (lv) => 1 + 0.15 * (lv - 1),                         // HP・攻撃力の倍率
+  upgradeCost: (def, lv) => Math.round((60 + def.cost * 0.4) * lv), // lv → lv+1 に必要な経験値
+};
+
+// ステージ報酬(経験値)
+export const REWARD = {
+  clear: (stageId) => 80 + 25 * stageId,
+  firstClearMul: 2,   // 初クリアは倍
+  loseRate: 0.25,     // 負けても城に与えたダメージ割合 × この率 の経験値
 };
