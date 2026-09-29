@@ -1,5 +1,5 @@
 // キャッシュ名のバージョン。アプリを更新したら必ず上げること
-const VERSION = 'v17';
+const VERSION = 'v18';
 const CACHE = `line-defense-${VERSION}`;
 
 const ASSETS = [

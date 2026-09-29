@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.15.0';
+export const APP_VERSION = 'v0.15.1';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -30,17 +30,18 @@ export const GAME = {
 
 // コスト: 時間経過で自動回復し、出撃時に消費する
 // 試合の経過時間でレベルが自動で上がり、上限と回復速度が段階的に増える(最終的に上限1000)
+// 子ども向けなので回復は早め
 //   time: このレベルになる経過秒数 / max: 上限 / rate: 1秒あたりの回復量
 export const COST = {
   levels: [
-    { time: 0, max: 400, rate: 12 },
-    { time: 20, max: 480, rate: 15 },
-    { time: 40, max: 560, rate: 18 },
-    { time: 60, max: 640, rate: 21 },
-    { time: 85, max: 720, rate: 24 },
-    { time: 110, max: 800, rate: 27 },
-    { time: 140, max: 900, rate: 30 },
-    { time: 170, max: 1000, rate: 33 },
+    { time: 0, max: 400, rate: 18 },
+    { time: 20, max: 480, rate: 21 },
+    { time: 40, max: 560, rate: 24 },
+    { time: 60, max: 640, rate: 27 },
+    { time: 85, max: 720, rate: 30 },
+    { time: 110, max: 800, rate: 34 },
+    { time: 140, max: 900, rate: 38 },
+    { time: 170, max: 1000, rate: 42 },
   ],
   // 敵撃破時の報酬(units.js の reward)に掛ける倍率。全体の稼ぎやすさをまとめて調整する
   killRewardMul: 1,
