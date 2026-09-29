@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.10.0';
+export const APP_VERSION = 'v0.11.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -12,8 +12,8 @@ export const WORLD = {
 
 // 敵の城(これを壊すとステージクリア)
 export const ENEMY_CASTLE = {
-  x: 972,
-  size: 56,
+  x: 935,
+  size: 100,  // 当たり判定の幅。前面(x - size/2)で味方が止まって攻撃する
 };
 
 export const GAME = {

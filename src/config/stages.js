@@ -58,7 +58,7 @@ export const WORLDS = [
   {
     id: 4,
     name: '魔王城',
-    theme: { sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
+    theme: { bg: 'assets/bg/world4.jpg', sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
     life: 6,
     names: ['魔界の門', '闇の回廊', '呪いの広間', '竜の間', '魔王の玉座'],
     pool: [

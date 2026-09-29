@@ -1,5 +1,9 @@
 // 戦闘画面の Canvas 描画(背景・拠点・ユニット・エフェクト)
 import { WORLD } from '../config/constants.js';
+
+// 城の画像(読み込めない場合は図形で描く)
+const ALLY_BASE_IMG = 'assets/castle/ally.png';
+const ENEMY_CASTLE_IMG = 'assets/castle/enemy.png';
 import { drawUnit, visualHeight, getImage } from './sprites.js';
 
 export class Renderer {
@@ -112,6 +116,14 @@ export class Renderer {
   drawBase(battle) {
     const { ctx, k, groundY } = this;
     const x1 = this.toScreenX(WORLD.allyBaseX);
+    const img = getImage(ALLY_BASE_IMG);
+    if (img) {
+      // 味方はこの塔から出撃する。左端に一部はみ出させて置く
+      const h = 150 * k;
+      const w = (img.naturalWidth / img.naturalHeight) * h;
+      ctx.drawImage(img, x1 * 0.7 - w * 0.5, groundY + 12 * k - h, w, h);
+      return;
+    }
     const hgt = 120 * k;
     // 城壁
     ctx.fillStyle = '#5d6d94';
@@ -140,8 +152,13 @@ export class Renderer {
   drawCastle(castle) {
     const { ctx, k, groundY } = this;
     const x0 = this.toScreenX(castle.x - castle.half);
-    const w = this.w - x0 + 20;
     const ratio = castle.hp / castle.maxHp;
+    const img = getImage(ENEMY_CASTLE_IMG);
+    if (img) {
+      this.drawCastleImage(img, castle, x0, ratio);
+      return;
+    }
+    const w = this.w - x0 + 20;
     // 壊れるほど低くなる
     const hgt = (castle.alive ? 70 + 60 * ratio : 30) * k;
     const top = groundY - hgt;
@@ -181,6 +198,34 @@ export class Renderer {
         ctx.moveTo(x0 + w * 0.7, top + 4 * k);
         ctx.lineTo(x0 + w * 0.6, top + 26 * k);
         ctx.lineTo(x0 + w * 0.72, top + 44 * k);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /** 敵の城(画像版)。HPが減るほど沈み、ヒビが入る。攻撃を受けると揺れる */
+  drawCastleImage(img, castle, frontX, ratio) {
+    const { ctx, k, groundY } = this;
+    const h = (castle.alive ? 0.8 + 0.2 * ratio : 0.55) * 160 * k;
+    const w = (img.naturalWidth / img.naturalHeight) * h;
+    const shake = castle.hitFlash > 0 ? (Math.random() - 0.5) * 5 : 0;
+    const x = Math.min(frontX - w * 0.1, this.w - w * 0.8) + shake;
+    const top = groundY + 12 * k - h;
+    ctx.save();
+    if (!castle.alive) ctx.globalAlpha = 0.45;
+    ctx.drawImage(img, x, top, w, h);
+    ctx.restore();
+    if (ratio < 0.66 && castle.alive) {
+      ctx.strokeStyle = 'rgba(20,0,0,.75)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.3, top + h * 0.3);
+      ctx.lineTo(x + w * 0.4, top + h * 0.45);
+      ctx.lineTo(x + w * 0.33, top + h * 0.6);
+      if (ratio < 0.33) {
+        ctx.moveTo(x + w * 0.68, top + h * 0.28);
+        ctx.lineTo(x + w * 0.58, top + h * 0.42);
+        ctx.lineTo(x + w * 0.7, top + h * 0.56);
       }
       ctx.stroke();
     }

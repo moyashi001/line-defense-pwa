@@ -14,6 +14,7 @@ const $ = (id) => document.getElementById(id);
 
 preloadSprites([...ALLY_UNITS, ...Object.values(ENEMY_UNITS)]);
 WORLDS.forEach((w) => getImage(w.theme.bg)); // 背景の先読み
+['assets/castle/ally.png', 'assets/castle/enemy.png'].forEach(getImage);
 
 const screens = new ScreenManager();
 const renderer = new Renderer($('battle-canvas'));
