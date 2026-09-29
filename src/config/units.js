@@ -59,7 +59,7 @@ export const ALLY_UNITS = [
   },
   {
     id: 'mage', name: 'メイジ', role: '魔法', label: '魔', shape: 'star', color: '#9575cd',
-    sprite: null,
+    sprite: 'assets/sprites/mage.png', spriteScale: 1.8,
     size: 26, hp: 90, atk: 30, range: 200, speed: 36, attackInterval: 1.8,
     attackType: 'ranged', projectileSpeed: 360, projectileColor: '#b388ff',
     pierce: true, slowOnHit: { factor: 0.5, duration: 2 },
@@ -67,7 +67,7 @@ export const ALLY_UNITS = [
   },
   {
     id: 'healer', name: 'ヒーラー', role: '回復', label: '癒', shape: 'circle', color: '#f8bbd0',
-    sprite: null,
+    sprite: 'assets/sprites/healer.png', spriteScale: 1.9,
     size: 24, hp: 120, atk: 6, range: 130, speed: 36, attackInterval: 1.5,
     attackType: 'ranged', projectileSpeed: 380, projectileColor: '#fff',
     heal: { amount: 45, radius: 150, interval: 3 },
@@ -75,14 +75,14 @@ export const ALLY_UNITS = [
   },
   {
     id: 'wing', name: 'ウィング', role: '飛行', label: '翼', shape: 'triangle', color: '#4dd0e1',
-    sprite: null,
+    sprite: 'assets/sprites/wing.png', spriteScale: 1.9,
     size: 24, hp: 160, atk: 24, range: 10, speed: 70, attackInterval: 0.9,
     attackType: 'melee', flying: true,
     cost: 180, cooldown: 6, unlockAfter: 10,
   },
   {
     id: 'knight', name: 'ナイト', role: '重装', label: '騎', shape: 'square', color: '#ffd54f',
-    sprite: null,
+    sprite: 'assets/sprites/knight.png', spriteScale: 1.5,
     size: 38, hp: 1400, atk: 60, range: 14, speed: 28, attackInterval: 1.5, armor: 12,
     attackType: 'area', knockbacks: 2,
     cost: 600, cooldown: 25, unlockAfter: 15,
