@@ -1,5 +1,5 @@
 // キャッシュ名のバージョン。アプリを更新したら必ず上げること
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `line-defense-${VERSION}`;
 
 const ASSETS = [
@@ -15,6 +15,8 @@ const ASSETS = [
   './assets/sprites/archer.png',
   './assets/sprites/slime.png',
   './assets/sprites/orcKing.png',
+  './assets/sprites/lancer.png',
+  './assets/sprites/cannon.png',
   './assets/bg/world1.jpg',
   './assets/bg/world2.jpg',
   './assets/bg/world3.jpg',

@@ -142,9 +142,6 @@ function buildStage(world, local) {
 export const STAGES = WORLDS.flatMap((world) =>
   Array.from({ length: STAGES_PER_WORLD }, (_, local) => buildStage(world, local)));
 
-/** 背景画像のパス(ない場合は null)。ステージ選択カードで使う */
-export const stageBg = (stage) => stage.theme.bg ?? null;
-
 /** ステージの説明文(選択画面用): 新しく出てくる敵やボスを紹介 */
 export function stageIntro(stage, enemyDefs) {
   const world = WORLDS.find((w) => w.id === stage.worldId);

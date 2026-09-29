@@ -1,5 +1,5 @@
 // 画面切り替えと、ステージ選択/編成・強化/結果画面のDOM処理
-import { STAGES, WORLDS, stageIntro, stageBg } from '../config/stages.js';
+import { STAGES, WORLDS, stageIntro } from '../config/stages.js';
 import { ALLY_UNITS, ENEMY_UNITS, DECK_SIZE } from '../config/units.js';
 import { LEVEL } from '../config/constants.js';
 import { Progress } from '../core/storage.js';
@@ -29,45 +29,66 @@ export class ScreenManager {
   }
 }
 
-// ---------- ステージ選択 ----------
-let selectedWorld = null;
+// ---------- ワールド選択 ----------
+const worldStages = (worldId) => STAGES.filter((s) => s.worldId === worldId);
 
-/** ワールドタブとステージカードを描画 */
-export function renderStageList(onSelect) {
-  if (selectedWorld == null) {
-    selectedWorld = STAGES[Progress.latestUnlocked(STAGES.length) - 1].worldId;
-  }
-  $('xp-select').textContent = `EXP ${Progress.xp}`;
+function cardBackground(theme) {
+  return theme.bg
+    ? `linear-gradient(160deg, ${theme.card}cc, #000a), center / cover url(${theme.bg})`
+    : `linear-gradient(160deg, ${theme.card}, ${theme.groundDark})`;
+}
 
-  const tabs = $('world-tabs');
-  tabs.innerHTML = '';
+/** ワールド一覧を描画。onPick(worldId) */
+export function renderWorldList(onPick) {
+  $('xp-world').textContent = `EXP ${Progress.xp}`;
+  const list = $('world-list');
+  list.innerHTML = '';
   for (const world of WORLDS) {
-    const first = STAGES.find((s) => s.worldId === world.id);
-    const unlocked = Progress.isUnlocked(first.id);
-    const btn = document.createElement('button');
-    btn.className = `world-tab${world.id === selectedWorld ? ' active' : ''}`;
-    btn.disabled = !unlocked;
-    btn.textContent = unlocked ? `${world.id}. ${world.name}` : `🔒 ${world.id}`;
-    btn.addEventListener('click', () => {
-      selectedWorld = world.id;
-      renderStageList(onSelect);
-    });
-    tabs.appendChild(btn);
+    const stages = worldStages(world.id);
+    const unlocked = Progress.isUnlocked(stages[0].id);
+    const clearedCount = stages.filter((s) => Progress.isCleared(s.id)).length;
+    const complete = clearedCount === stages.length;
+    const card = document.createElement('button');
+    card.className = `stage-card world-card${unlocked ? '' : ' locked'}${complete ? ' cleared' : ''}`;
+    card.style.background = cardBackground(world.theme);
+    card.disabled = !unlocked;
+    const need = STAGES[stages[0].id - 2];
+    card.innerHTML = `
+      <div>
+        <div class="stage-no">WORLD ${world.id}</div>
+        <div class="stage-name">${world.name}</div>
+      </div>
+      <div class="stage-desc">ボス: ${ENEMY_UNITS[world.boss.type].name}</div>
+      <div class="stage-status">${complete ? '★ ' : ''}クリア ${clearedCount} / ${stages.length}</div>
+      ${unlocked ? '' : `<div class="lock">🔒<small>${need ? `${need.label} クリアで解放` : ''}</small></div>`}
+    `;
+    if (unlocked) card.addEventListener('click', () => onPick(world.id));
+    list.appendChild(card);
   }
+}
+
+/** 一番先に進めるワールド */
+export function latestWorldId() {
+  return STAGES[Progress.latestUnlocked(STAGES.length) - 1].worldId;
+}
+
+// ---------- ステージ選択(ワールド内) ----------
+/** ワールド内のステージカードを描画 */
+export function renderStageList(worldId, onSelect) {
+  const world = WORLDS.find((w) => w.id === worldId);
+  $('select-title').textContent = `WORLD ${world.id}  ${world.name}`;
+  $('xp-select').textContent = `EXP ${Progress.xp}`;
 
   const list = $('stage-list');
   list.innerHTML = '';
-  for (const stage of STAGES.filter((s) => s.worldId === selectedWorld)) {
+  for (const stage of worldStages(worldId)) {
     const unlocked = Progress.isUnlocked(stage.id);
     const cleared = Progress.isCleared(stage.id);
     const best = Progress.bestTime(stage.id);
 
     const card = document.createElement('button');
     card.className = `stage-card${unlocked ? '' : ' locked'}${cleared ? ' cleared' : ''}${stage.boss ? ' boss' : ''}`;
-    const bg = stageBg(stage);
-    card.style.background = bg
-      ? `linear-gradient(160deg, ${stage.theme.card}cc, #000a), center / cover url(${bg})`
-      : `linear-gradient(160deg, ${stage.theme.card}, ${stage.theme.groundDark})`;
+    card.style.background = cardBackground(stage.theme);
     card.disabled = !unlocked;
     card.innerHTML = `
       <div>

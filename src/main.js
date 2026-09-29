@@ -7,7 +7,7 @@ import { GameLoop } from './core/loop.js';
 import { Battle } from './game/Battle.js';
 import { Renderer } from './render/Renderer.js';
 import { preloadSprites, getImage } from './render/sprites.js';
-import { ScreenManager, renderStageList, renderTeam, renderResult, unitsUnlockedBy } from './ui/screens.js';
+import { ScreenManager, renderWorldList, renderStageList, renderTeam, renderResult, unitsUnlockedBy, latestWorldId } from './ui/screens.js';
 import { BattleUI } from './ui/battleUI.js';
 
 const $ = (id) => document.getElementById(id);
@@ -20,6 +20,8 @@ const renderer = new Renderer($('battle-canvas'));
 
 let battle = null;
 let currentStage = null;
+let currentWorldId = null;
+let teamReturn = 'world'; // 編成画面から戻る先
 let paused = false;
 
 const ui = new BattleUI({
@@ -37,6 +39,7 @@ const loop = new GameLoop((dt) => {
 // ---------- 戦闘の開始/終了 ----------
 function startBattle(stage) {
   currentStage = stage;
+  currentWorldId = stage.worldId;
   screens.show('battle');
 }
 
@@ -91,8 +94,22 @@ function setPaused(value) {
 // ---------- 画面ごとの処理 ----------
 screens.register('title', {});
 
+function openWorld(worldId) {
+  currentWorldId = worldId;
+  screens.show('select');
+}
+
+function openTeam() {
+  teamReturn = screens.current === 'world' ? 'world' : 'select';
+  screens.show('team');
+}
+
+screens.register('world', {
+  enter: () => renderWorldList(openWorld),
+});
+
 screens.register('select', {
-  enter: () => renderStageList(startBattle),
+  enter: () => renderStageList(currentWorldId ?? latestWorldId(), startBattle),
 });
 
 screens.register('team', {
@@ -125,16 +142,19 @@ screens.register('result', {});
 // ---------- ボタン ----------
 $('btn-start').addEventListener('click', async () => {
   await tryLandscapeFullscreen();
-  screens.show('select');
+  screens.show('world');
 });
-$('btn-select-back').addEventListener('click', () => screens.show('title'));
-$('btn-team').addEventListener('click', () => screens.show('team'));
-$('btn-team-back').addEventListener('click', () => screens.show('select'));
-$('btn-result-team').addEventListener('click', () => screens.show('team'));
+$('btn-world-back').addEventListener('click', () => screens.show('title'));
+$('btn-select-back').addEventListener('click', () => screens.show('world'));
+$('btn-team-world').addEventListener('click', openTeam);
+$('btn-team').addEventListener('click', openTeam);
+$('btn-result-team').addEventListener('click', openTeam);
+$('btn-team-back').addEventListener('click', () => screens.show(teamReturn));
 $('btn-reset').addEventListener('click', () => {
   if (confirm('クリア状況・経験値・キャラのレベルをすべて消去しますか？')) {
     Progress.reset();
-    renderStageList(startBattle);
+    currentWorldId = null;
+    renderWorldList(openWorld);
   }
 });
 $('btn-pause').addEventListener('click', () => { if (battle && !battle.isOver) setPaused(true); });

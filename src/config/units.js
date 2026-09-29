@@ -46,13 +46,13 @@ export const ALLY_UNITS = [
   },
   {
     id: 'lancer', name: 'ランサー', role: '範囲', label: '槍', shape: 'diamond', color: '#ba68c8',
-    sprite: null,
+    sprite: 'assets/sprites/lancer.png', spriteScale: 1.7,
     size: 28, hp: 220, atk: 34, range: 45, speed: 42, attackInterval: 1.6,
     attackType: 'area', cost: 220, cooldown: 7,
   },
   {
     id: 'cannon', name: 'キャノン', role: '砲撃', label: '砲', shape: 'hex', color: '#e57373',
-    sprite: null,
+    sprite: 'assets/sprites/cannon.png', spriteScale: 1.6,
     size: 34, hp: 260, atk: 100, range: 280, speed: 22, attackInterval: 3.2,
     attackType: 'ranged', projectileSpeed: 320, projectileColor: '#333', splash: 60,
     cost: 450, cooldown: 15,

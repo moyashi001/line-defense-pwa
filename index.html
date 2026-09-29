@@ -25,16 +25,27 @@
       </div>
     </section>
 
-    <!-- ステージ選択画面 -->
+    <!-- ワールド選択画面 -->
+    <section id="screen-world" class="screen">
+      <header class="select-header">
+        <button id="btn-world-back" class="btn btn-ghost btn-sm">← タイトル</button>
+        <h2>ワールド選択</h2>
+        <span id="xp-world" class="xp-badge"></span>
+        <button id="btn-team-world" class="btn btn-primary btn-sm">編成・強化</button>
+      </header>
+      <div id="world-list" class="stage-list"></div>
+      <button id="btn-reset" class="btn btn-ghost btn-sm btn-reset">データ消去</button>
+    </section>
+
+    <!-- ステージ選択画面(ワールド内) -->
     <section id="screen-select" class="screen">
       <header class="select-header">
-        <button id="btn-select-back" class="btn btn-ghost btn-sm">← タイトル</button>
-        <div id="world-tabs" class="world-tabs"></div>
+        <button id="btn-select-back" class="btn btn-ghost btn-sm">← ワールド選択</button>
+        <h2 id="select-title"></h2>
         <span id="xp-select" class="xp-badge"></span>
         <button id="btn-team" class="btn btn-primary btn-sm">編成・強化</button>
       </header>
       <div id="stage-list" class="stage-list"></div>
-      <button id="btn-reset" class="btn btn-ghost btn-sm btn-reset">データ消去</button>
     </section>
 
     <!-- 編成・強化画面 -->
