@@ -108,6 +108,7 @@ export const ENEMY_UNITS = {
   },
   goblin: {
     name: 'ゴブリン', label: 'ゴ', shape: 'triangle', color: '#8d6e63',
+    sprite: 'assets/sprites/goblin.png', spriteFacing: 'left', spriteScale: 1.9,
     size: 22, hp: 55, atk: 11, range: 6, speed: 72, attackInterval: 0.8,
     attackType: 'melee', baseDamage: 1, reward: 20,
   },
@@ -119,6 +120,7 @@ export const ENEMY_UNITS = {
   },
   shieldbearer: {
     name: '盾兵', label: '盾', shape: 'square', color: '#90a4ae',
+    sprite: 'assets/sprites/shieldbearer.png', spriteFacing: 'left', spriteScale: 1.7,
     size: 30, hp: 260, atk: 14, range: 6, speed: 26, attackInterval: 1.3, armor: 22,
     attackType: 'melee', baseDamage: 2, reward: 50,
   },
@@ -137,6 +139,7 @@ export const ENEMY_UNITS = {
   },
   iceSprite: {
     name: 'アイス精', label: '氷', shape: 'diamond', color: '#81d4fa',
+    sprite: 'assets/sprites/iceSprite.png', spriteScale: 1.8,
     size: 24, hp: 120, atk: 12, range: 110, speed: 34, attackInterval: 1.6,
     attackType: 'ranged', projectileSpeed: 340, projectileColor: '#e1f5fe',
     slowOnHit: { factor: 0.5, duration: 2.5 },
@@ -144,6 +147,7 @@ export const ENEMY_UNITS = {
   },
   shaman: {
     name: 'シャーマン', label: '呪', shape: 'star', color: '#ab47bc',
+    sprite: 'assets/sprites/shaman.png', spriteScale: 1.9,
     size: 26, hp: 150, atk: 8, range: 120, speed: 30, attackInterval: 1.6,
     attackType: 'ranged', projectileSpeed: 340, projectileColor: '#ce93d8',
     heal: { amount: 30, radius: 120, interval: 4 },
@@ -173,11 +177,13 @@ export const ENEMY_UNITS = {
   },
   dragon: {
     name: 'ドラゴン', label: '竜', shape: 'hex', color: '#d32f2f', boss: true,
+    sprite: 'assets/sprites/dragon.png', spriteScale: 1.4,
     size: 64, hp: 2600, atk: 55, range: 55, speed: 16, attackInterval: 2.2, armor: 8,
     attackType: 'area', baseDamage: 5, reward: 400, knockbacks: 4,
   },
   demonLord: {
     name: '魔王', label: '魔', shape: 'star', color: '#6a1b9a', boss: true,
+    sprite: 'assets/sprites/demonLord.png', spriteScale: 1.35,
     size: 70, hp: 5000, atk: 70, range: 220, speed: 12, attackInterval: 2.6, armor: 15,
     attackType: 'ranged', projectileSpeed: 300, projectileColor: '#e040fb', splash: 60,
     summon: { type: 'bat', count: 2, interval: 12 },
