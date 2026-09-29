@@ -356,9 +356,13 @@ export class Renderer {
     if (p.magic) {
       ctx.save();
       ctx.shadowColor = p.color;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = p.big ? 20 : 10;
       ctx.beginPath();
-      ctx.arc(x, y, 5 * k, 0, Math.PI * 2);
+      ctx.arc(x, y, (p.big ? 11 : 5) * k, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(x, y, (p.big ? 5 : 2.2) * k, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
       return;

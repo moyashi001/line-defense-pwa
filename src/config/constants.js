@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.16.1';
+export const APP_VERSION = 'v0.17.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵の城)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。

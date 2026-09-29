@@ -71,8 +71,8 @@ export class Effects {
         this.add({ kind: 'flash', x: ev.x1, laneY: ev.laneY, h: (ev.toFly ? FLY_H : 0) + 16, life: 0.16, size: 14, color: ev.color });
         break;
       case 'explosion': this.onExplosion(ev); break;
-      case 'swing':
-        this.add({ kind: ev.style === 'thrust' ? 'thrust' : 'swing', x: ev.x, laneY: ev.laneY, h: h0 + 4, dir: ev.dir, reach: ev.reach, life: 0.22, size: ev.size, color: ev.color ?? '#ffffff' });
+      case 'strike':
+        this.onStrike(ev, h0);
         break;
       case 'healed':
         for (let i = 0; i < 5; i++) {
@@ -123,6 +123,84 @@ export class Effects {
     }
     // 味方の攻撃で大きなダメージのときだけ数字を出す(数が多いと見づらいため)
     if (ev.side === 'enemy' && ev.dmg >= 25) this.damageText(ev.x, ev.laneY, h0 + 18, ev.dmg);
+  }
+
+  /** キャラごとの攻撃演出 */
+  onStrike(ev, h0) {
+    const { x, laneY, dir, color } = ev;
+    const s = (ev.size ?? 40) / 40;           // キャラの大きさに合わせて演出も大きく
+    const h = h0 + 8 * s;
+    const streak = (ang, len, width, life = 0.2, c = color, dx = 0, dh = 0) =>
+      this.add({ kind: 'streak', x: x + dx, laneY, h: h + dh, ang, len, width, life, color: c });
+    switch (ev.style) {
+      case 'psychic': // ピンクの念波と爪あと
+        this.add({ kind: 'ring', x, laneY, h, life: 0.3, size: 22 * s, color, upright: true });
+        for (let i = -1; i <= 1; i++) streak(dir * (-0.9 + i * 0.12), 26 * s, 3, 0.22, '#ffffff', i * 5, i * 4);
+        for (let i = 0; i < 6; i++) this.add({ kind: 'dot', glow: true, x, laneY, h, vx: dir * rand(20, 70), vh: rand(-40, 60), life: rand(0.25, 0.45), size: rand(1.2, 2.2), color });
+        break;
+      case 'bash': // 六角形のシールドが光る
+        this.add({ kind: 'hex', x: x - dir * 6, laneY, h, life: 0.28, size: 16 * s, color });
+        for (let i = 0; i < 5; i++) this.add({ kind: 'spark', x, laneY, h, vx: dir * rand(30, 90), vh: rand(-60, 80), g: 150, life: rand(0.15, 0.3), size: 2, color: '#ffffff' });
+        this.add({ kind: 'smoke', x, laneY, h: 2, vx: dir * 20, vh: 10, life: 0.4, size: 5, color: '#c8b89a' });
+        break;
+      case 'thrust': // 光る槍の突き
+        streak(0, (ev.reach + 30) * s * 0.9, 5 * s, 0.18, color, dir * ev.reach * 0.3);
+        streak(0, (ev.reach + 30) * s * 0.9, 1.8 * s, 0.18, '#ffffff', dir * ev.reach * 0.3);
+        this.add({ kind: 'flash', x: x + dir * ev.reach * 0.6, laneY, h, life: 0.15, size: 12 * s, color });
+        for (let i = 0; i < 6; i++) this.add({ kind: 'spark', x: x + dir * ev.reach * 0.6, laneY, h, vx: dir * rand(60, 160), vh: rand(-60, 60), g: 80, life: rand(0.15, 0.3), size: 1.8, color });
+        break;
+      case 'swing': // 鉄球の弧 + 地面を揺らす衝撃
+        this.add({ kind: 'swing', x, laneY, h: h + 10 * s, dir, reach: ev.reach, life: 0.25, size: ev.size, color: '#ffffff' });
+        this.add({ kind: 'ring', x: x + dir * 20, laneY, h: 2, life: 0.4, size: 40 * s, color });
+        for (let i = 0; i < 8; i++) this.add({ kind: 'debris', x: x + dir * 20, laneY, h: 4, vx: rand(-60, 60), vh: rand(60, 140), g: 320, vr: rand(-8, 8), life: rand(0.4, 0.7), size: rand(2, 3.5), color: pick(['#5d4037', '#8d6e63', '#3e2723']) });
+        this.r.shake(3, 0.12);
+        break;
+      case 'wingSlash': // 金色の十字斬り
+        streak(0.8, 34 * s, 4, 0.22, color);
+        streak(-0.8, 34 * s, 4, 0.22, color);
+        streak(0.8, 34 * s, 1.5, 0.22, '#ffffff');
+        streak(-0.8, 34 * s, 1.5, 0.22, '#ffffff');
+        for (let i = 0; i < 8; i++) this.add({ kind: 'dot', glow: true, x, laneY, h, vx: rand(-50, 50), vh: rand(-30, 70), g: 40, life: rand(0.3, 0.6), size: rand(1.2, 2.4), color: pick([color, '#fffde7']) });
+        break;
+      case 'goo': { // ぷにっと飛び散る粘液
+        const n = ev.boss ? 16 : 7;
+        this.add({ kind: 'ring', x, laneY, h: 2, life: 0.3, size: (ev.boss ? 50 : 14) * s, color });
+        for (let i = 0; i < n; i++) this.add({ kind: 'blob', x, laneY, h, vx: rand(-60, 60) * s, vh: rand(20, 110), g: 300, life: rand(0.35, 0.6), size: rand(2, 4) * (ev.boss ? 1.8 : 1), color });
+        if (ev.boss) this.r.shake(4, 0.2);
+        break;
+      }
+      case 'claw': // 3本の爪あと
+        for (let i = -1; i <= 1; i++) streak(dir * 0.9, 22 * s, 2.5, 0.2, color, i * 6, i * 5);
+        break;
+      case 'bite': // 上下からかみつく
+        this.add({ kind: 'chomp', x, laneY, h, dir, life: 0.25, size: 16 * s, color });
+        for (let i = 0; i < 5; i++) this.add({ kind: 'spark', x, laneY, h, vx: rand(-60, 60), vh: rand(-40, 80), g: 150, life: rand(0.15, 0.3), size: 2, color: '#ffffff' });
+        break;
+      case 'smash': // 地面をたたきつける
+        this.add({ kind: 'ring', x, laneY, h: 2, life: 0.5, size: 90, color });
+        this.add({ kind: 'ring', x, laneY, h: 2, life: 0.35, size: 50, color: '#ffffff' });
+        for (let i = 0; i < 16; i++) this.add({ kind: 'debris', x: x + rand(-30, 30), laneY, h: 4, vx: rand(-90, 90), vh: rand(80, 200), g: 360, vr: rand(-8, 8), life: rand(0.5, 0.9), size: rand(2.5, 5), color: pick(['#5d4037', '#8d6e63', '#3e2723', '#a1887f']) });
+        for (let i = 0; i < 6; i++) this.add({ kind: 'smoke', x: x + rand(-30, 30), laneY, h: 4, vx: rand(-40, 40), vh: rand(10, 30), life: rand(0.6, 1), size: rand(7, 11), color: '#9e8e7e' });
+        this.r.shake(6, 0.3);
+        break;
+      case 'iceSmash': // 氷の柱が砕ける
+        this.add({ kind: 'ring', x, laneY, h: 2, life: 0.45, size: 80, color });
+        for (let i = 0; i < 18; i++) this.add({ kind: 'shard', x: x + rand(-30, 30), laneY, h: 6, vx: rand(-80, 80), vh: rand(80, 220), g: 320, vr: rand(-8, 8), life: rand(0.5, 0.9), size: rand(3, 6), color: pick([color, '#ffffff', '#81d4fa']) });
+        this.add({ kind: 'flash', x, laneY, h: 20, life: 0.2, size: 50, color: '#e1f5fe' });
+        this.r.shake(5, 0.25);
+        break;
+      case 'fire': // 前方へ吹き出す炎
+        // 口の高さ(見た目の高さの半分あたり)から、前方へ大きく吹き出す
+        for (let i = 0; i < 40; i++) {
+          this.add({ kind: 'flame', x: x - dir * 20, laneY: laneY + rand(-4, 4), h: (ev.size ?? 60) * 0.5 + rand(-8, 8), vx: dir * rand(160, 320), vh: rand(-70, 30), life: rand(0.45, 0.8), size: rand(6, 12) * Math.max(1, s * 0.5), color: pick(['#ffeb3b', '#ff9800', '#ff5722', '#ff7b3a']) });
+        }
+        this.add({ kind: 'flash', x: x - dir * 20, laneY, h: (ev.size ?? 60) * 0.5, life: 0.25, size: 30 * s * 0.5, color: '#ffb74d' });
+        this.r.shake(3, 0.2);
+        break;
+      default: // 旧来の白い斬撃
+        streak(0.8, 18 * s, 2.5, 0.18, '#ffffff');
+        streak(-0.8, 18 * s, 2.5, 0.18, '#ffffff');
+    }
   }
 
   damageText(x, laneY, h, dmg) {
@@ -183,7 +261,7 @@ export class Effects {
   trail(p, dt) {
     if (!p.magic || Math.random() > dt * 40) return;
     const fly = ((p.fromFly ? 1 - p.progress : 0) + (p.toFly ? p.progress : 0)) * FLY_H;
-    this.add({ kind: 'dot', glow: true, x: p.x, laneY: p.laneY, h: 16 + fly + Math.sin(p.progress * Math.PI) * 24, vh: rand(-5, 5), life: 0.35, size: rand(1.5, 3), color: pick(['#b388ff', '#e1bee7', '#8ff3ff']) });
+    this.add({ kind: 'dot', glow: true, x: p.x, laneY: p.laneY, h: 16 + fly + Math.sin(p.progress * Math.PI) * 24, vh: rand(-5, 5), life: 0.35, size: rand(1.5, 3) * (p.big ? 2 : 1), color: Math.random() < 0.5 ? p.color : '#ffffff' });
   }
 
   spawnAmbient(anywhere = false) {
@@ -330,8 +408,74 @@ export class Effects {
         case 'ring':
           ctx.lineWidth = 2.5;
           ctx.beginPath();
-          ctx.ellipse(x, y, s * (0.3 + prog), s * (0.3 + prog) * 0.3, 0, 0, Math.PI * 2);
+          ctx.ellipse(x, y, s * (0.3 + prog), s * (0.3 + prog) * (p.upright ? 1 : 0.3), 0, 0, Math.PI * 2);
           ctx.stroke();
+          break;
+        case 'streak': {
+          // 斬撃・爪あとの線(伸びてから細くなる)
+          const len = p.len * k * Math.min(1, prog * 3 + 0.3);
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.lineWidth = Math.max(0.5, p.width * k * (1 - prog));
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x - Math.cos(p.ang) * len / 2, y - Math.sin(p.ang) * len / 2);
+          ctx.lineTo(x + Math.cos(p.ang) * len / 2, y + Math.sin(p.ang) * len / 2);
+          ctx.stroke();
+          break;
+        }
+        case 'hex': {
+          const r = s * (0.8 + prog * 0.5);
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (Math.PI / 3) * i + Math.PI / 6;
+            const px = x + Math.cos(a) * r * 0.6;
+            const py = y + Math.sin(a) * r;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.globalAlpha = alpha * 0.35;
+          ctx.fill();
+          ctx.globalAlpha = alpha;
+          ctx.stroke();
+          break;
+        }
+        case 'blob':
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.beginPath();
+          ctx.ellipse(x, y, s, s * 0.8, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,.6)';
+          ctx.beginPath();
+          ctx.arc(x - s * 0.3, y - s * 0.3, s * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+        case 'chomp': {
+          // 上あご・下あごが閉じる
+          const open = (1 - Math.min(1, prog * 2.5)) * s * 0.8;
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = p.color;
+          ctx.strokeStyle = 'rgba(0,0,0,.6)';
+          ctx.lineWidth = 1.5;
+          for (const sgn of [-1, 1]) {
+            const yy = y + sgn * (open + s * 0.15);
+            ctx.beginPath();
+            ctx.moveTo(x - s, yy);
+            for (let i = 0; i <= 4; i++) ctx.lineTo(x - s + (i * 2 * s) / 4 + s / 4, yy - sgn * s * 0.45);
+            ctx.lineTo(x + s, yy);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          }
+          break;
+        }
+        case 'flame':
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = Math.max(0, alpha * 0.8);
+          ctx.beginPath();
+          ctx.arc(x, y, s * (0.6 + prog * 1.2), 0, Math.PI * 2);
+          ctx.fill();
           break;
         case 'swing': {
           // 武器を振った弧

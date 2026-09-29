@@ -211,6 +211,14 @@ export class Unit {
     return false;
   }
 
+  /** キャラごとの攻撃演出を通知(見た目だけ) */
+  strikeFx(battle, x, laneY, flying, reach = this.def.range) {
+    battle.fx('strike', {
+      style: this.def.attackFx, x, laneY, flying, dir: this.dir, reach,
+      size: this.def.drawHeight ?? this.def.size, color: this.def.fxColor ?? this.def.color, boss: !!this.def.boss,
+    });
+  }
+
   get hitOpts() {
     return { pierce: !!this.def.pierce, slow: this.def.slowOnHit, color: this.def.pierce ? '#d1a8ff' : undefined };
   }
@@ -221,7 +229,8 @@ export class Unit {
     switch (this.def.attackType) {
       case 'melee':
         target.takeDamage(this.atk, battle, this.hitOpts);
-        battle.addHitEffect(target.x, this, 'slash');
+        if (this.def.attackFx) this.strikeFx(battle, target.x, target.laneY, !!target.def.flying);
+        else battle.addHitEffect(target.x, this, 'slash');
         break;
       case 'area': {
         const reach = this.def.range;
@@ -229,7 +238,7 @@ export class Unit {
           if (o.alive && this.canHit(o) && this.isInFront(o) && this.gapTo(o) <= reach) o.takeDamage(this.atk, battle, this.hitOpts);
         }
         if (this.def.attackFx) {
-          battle.fx('swing', { x: this.frontX, laneY: this.laneY, flying: this.flying, dir: this.dir, reach, style: this.def.attackFx, size: this.def.size, color: this.def.color });
+          this.strikeFx(battle, this.frontX + this.dir * Math.min(reach, 40) * 0.5, this.laneY, this.flying, reach);
         } else {
           battle.addHitEffect(this.frontX + this.dir * reach * 0.5, this, 'area');
         }

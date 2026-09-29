@@ -14,7 +14,8 @@ export class Projectile {
     this.color = owner.def.projectileColor || '#fff';
     this.heavy = this.splash > 0;
     this.hitOpts = owner.hitOpts;
-    this.magic = !!owner.def.pierce;
+    this.magic = !!owner.def.pierce || owner.def.projectileStyle === 'orb';
+    this.big = !!owner.def.boss;
     this.fromFly = owner.flying;
     this.toFly = !!target.def.flying;
     this.done = false;
