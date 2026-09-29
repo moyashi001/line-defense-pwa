@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.2.0';
+export const APP_VERSION = 'v0.2.1';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵出現口)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -21,5 +21,5 @@ export const GAME = {
 // コスト: 時間経過で自動回復し、出撃時に消費する
 export const COST = {
   max: 1000,   // 上限
-  rate: 40,    // 1秒あたりの回復量
+  rate: 20,    // 1秒あたりの回復量
 };

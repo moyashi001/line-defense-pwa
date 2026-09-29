@@ -39,8 +39,8 @@ export const STAGES = [
     desc: '最後の戦い。ドラゴンが待ち受ける。',
     theme: { sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
     life: 6,
-    startMoney: 250,
-    enemyMul: { hp: 2.0, atk: 1.6, speed: 1.25 },
+    startMoney: 300,
+    enemyMul: { hp: 1.6, atk: 1.3, speed: 1.2 },
     waves: [
       { timeout: 30, spawns: [{ type: 'goblin', count: 8, interval: 1.2, at: 1 }] },
       { timeout: 40, spawns: [{ type: 'orc', count: 2, interval: 5, at: 0 }, { type: 'skeletonArcher', count: 4, interval: 2.5, at: 2 }] },
