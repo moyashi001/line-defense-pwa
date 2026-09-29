@@ -23,7 +23,6 @@ let paused = false;
 
 const ui = new BattleUI({
   onSpawn: (i) => { if (battle && !paused) battle.spawnAlly(i); },
-  onUpgrade: () => { if (battle && !paused) battle.upgradeWallet(); },
 });
 
 const loop = new GameLoop((dt) => {

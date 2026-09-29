@@ -1,5 +1,5 @@
 // 戦闘の状態とルール(描画・DOMには依存しない)
-import { WORLD, GAME, WALLET } from '../config/constants.js';
+import { WORLD, GAME, COST } from '../config/constants.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
 import { Unit } from './Unit.js';
 import { Projectile } from './Projectile.js';
@@ -16,7 +16,6 @@ export class Battle {
     this.time = 0;
     this.life = stage.life;
     this.maxLife = stage.life;
-    this.walletLevel = 1;
     this.money = stage.startMoney;
     this.kills = 0;
 
@@ -39,11 +38,8 @@ export class Battle {
   }
 
   // ---------- 参照系 ----------
-  get walletMax() { return WALLET.max(this.walletLevel); }
-  get walletRate() { return WALLET.rate(this.walletLevel); }
-  get walletUpgradeCost() {
-    return this.walletLevel >= WALLET.maxLevel ? null : WALLET.upgradeCost(this.walletLevel);
-  }
+  get costMax() { return COST.max; }
+  get costRate() { return COST.rate; }
   get totalWaves() { return this.stage.waves.length; }
   get isOver() { return this.result !== null; }
 
@@ -75,14 +71,6 @@ export class Battle {
     this.money -= def.cost;
     this.allyCooldowns[index] = def.cooldown;
     this.units.push(new Unit(def, 'ally', WORLD.allyBaseX + def.size / 2));
-    return true;
-  }
-
-  upgradeWallet() {
-    const cost = this.walletUpgradeCost;
-    if (cost == null || this.money < cost || this.isOver) return false;
-    this.money -= cost;
-    this.walletLevel += 1;
     return true;
   }
 
@@ -139,7 +127,7 @@ export class Battle {
     }
 
     this.time += dt;
-    this.money = Math.min(this.walletMax, this.money + this.walletRate * dt);
+    this.money = Math.min(this.costMax, this.money + this.costRate * dt);
     this.allyCooldowns = this.allyCooldowns.map((c) => Math.max(0, c - dt));
 
     this.updateWaves(dt);
@@ -191,7 +179,7 @@ export class Battle {
       this.kills += 1;
       const reward = unit.def.reward ?? 0;
       if (reward) {
-        this.money = Math.min(this.walletMax, this.money + reward);
+        this.money = Math.min(this.costMax, this.money + reward);
         this.addPopup(unit.x, `+${reward}`, '#ffd84d');
       }
     }

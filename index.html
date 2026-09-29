@@ -21,8 +21,8 @@
         <h1 class="logo">ライン・ディフェンス</h1>
         <p class="subtitle">LINE DEFENSE</p>
         <button id="btn-start" class="btn btn-primary btn-lg">タップでスタート</button>
+        <p class="version" id="app-version"></p>
       </div>
-      <p class="version" id="app-version"></p>
     </section>
 
     <!-- ステージ選択画面 -->
@@ -52,10 +52,10 @@
         <div id="battle-banner" class="banner"></div>
       </div>
       <div class="deck">
-        <button id="btn-wallet" class="wallet-btn">
-          <span class="wallet-title">コスト Lv<span id="wallet-level">1</span></span>
-          <span class="wallet-cost" id="wallet-cost"></span>
-        </button>
+        <div class="cost-box">
+          <span class="cost-title">コスト</span>
+          <span class="cost-now" id="cost-now">0</span>
+        </div>
         <div id="unit-buttons" class="unit-buttons"></div>
       </div>
       <div id="pause-overlay" class="overlay">

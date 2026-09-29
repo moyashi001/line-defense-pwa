@@ -1,5 +1,5 @@
 // ゲーム全体の定数
-export const APP_VERSION = 'v0.1.0';
+export const APP_VERSION = 'v0.2.0';
 
 // ワールド座標系: x は 0(自陣) 〜 WORLD.length(敵出現口)。
 // サイズや射程もこの単位。描画時に Renderer が画面サイズへ変換する。
@@ -18,10 +18,8 @@ export const GAME = {
   knockbackTime: 0.35,
 };
 
-// コスト(お財布)レベル
-export const WALLET = {
-  maxLevel: 8,
-  max: (lv) => 400 + 250 * (lv - 1),
-  rate: (lv) => 30 + 12 * (lv - 1),      // 1秒あたりの回復量
-  upgradeCost: (lv) => 80 * lv,
+// コスト: 時間経過で自動回復し、出撃時に消費する
+export const COST = {
+  max: 1000,   // 上限
+  rate: 40,    // 1秒あたりの回復量
 };
