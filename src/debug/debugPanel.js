@@ -1,6 +1,6 @@
 // デバッグ機能(URL に ?debug=1 を付けたときだけ有効)
-//   ・ワールド選択画面: 全解放 / EXP追加 / 全キャラLv最大 / デバッグデータ消去
-//   ・戦闘画面: 🐞 ボタンからパネルを開く(無限コスト・無敵・倍速・好きなキャラを出す・勝敗の即決など)
+//   常にON: 全ステージ・全キャラ・図鑑を解放 / EXP 10000以上 / 全キャラLv最大 / コスト常に1000・出撃の待ち時間なし
+//   戦闘画面: 🐞 ボタンからパネルを開く(無敵・倍速・好きなキャラを出す・勝敗の即決など)
 // デバッグ中の進行データは別の保存枠(storage.js)なので、本来のデータは変わらない。
 import { STAGES } from '../config/stages.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
@@ -11,14 +11,14 @@ const $ = (id) => document.getElementById(id);
 // 戦闘をまたいで保持する設定
 export const debugState = {
   speed: 1,
-  infiniteCost: false,
-  noCooldown: false,
+  infiniteCost: true, // 常にON(コスト1000・レベル最大)
+  noCooldown: true,   // 常にON
   invincible: false,
   hitbox: false,
 };
 
 /**
- * @param {{ getBattle: () => any, renderer: any, refreshWorld: () => void }} ctx
+ * @param {{ getBattle: () => any, renderer: any }} ctx
  */
 export function setupDebug(ctx) {
   const badge = document.createElement('div');
@@ -26,7 +26,7 @@ export function setupDebug(ctx) {
   badge.textContent = 'DEBUG';
   document.body.appendChild(badge);
 
-  setupWorldBar(ctx);
+  applyDebugProgress();
   setupBattlePanel(ctx);
 }
 
@@ -38,26 +38,12 @@ export function applyDebugToBattle(battle, renderer) {
   renderer.showHitbox = debugState.hitbox;
 }
 
-// ---------- ワールド選択画面のデバッグバー ----------
-function setupWorldBar({ refreshWorld }) {
-  const bar = document.createElement('div');
-  bar.className = 'debug-bar';
-  const actions = [
-    ['全ステージ・キャラ・図鑑を解放', () => Progress.debugUnlockAll(STAGES.length, Object.keys(ENEMY_UNITS))],
-    ['EXP +10000', () => Progress.debugAddXp(10000)],
-    ['全キャラ Lv MAX', () => Progress.debugMaxLevels()],
-    ['デバッグデータ消去', () => { if (confirm('デバッグ用の進行データを消去しますか？')) Progress.reset(); }],
-    ['通常モードに戻る', () => { location.href = location.pathname; }],
-  ];
-  for (const [label, fn] of actions) {
-    const b = document.createElement('button');
-    b.className = 'btn btn-sm';
-    b.textContent = label;
-    b.addEventListener('click', () => { fn(); refreshWorld(); });
-    bar.appendChild(b);
-  }
-  const header = document.querySelector('#screen-world .select-header');
-  header.after(bar);
+// ---------- 進行データ(常にON) ----------
+/** 全解放・EXP・全キャラLv最大をデバッグ用の保存枠に反映する(起動時・画面遷移時に呼ぶ) */
+export function applyDebugProgress() {
+  Progress.debugUnlockAll(STAGES.length, Object.keys(ENEMY_UNITS));
+  Progress.debugMaxLevels();
+  Progress.debugEnsureXp(10000);
 }
 
 // ---------- 戦闘中のデバッグパネル ----------
@@ -97,8 +83,6 @@ function setupBattlePanel({ getBattle, renderer }) {
 
   // 切り替え
   const r1 = section('チート');
-  toggle(r1, '無限コスト', 'infiniteCost', (bt) => { bt.debug.infiniteCost = debugState.infiniteCost; });
-  toggle(r1, 'クールダウン無し', 'noCooldown', (bt) => { bt.debug.noCooldown = debugState.noCooldown; });
   toggle(r1, '自陣無敵', 'invincible', (bt) => { bt.debug.invincible = debugState.invincible; });
   toggle(r1, '当たり判定表示', 'hitbox', () => { renderer.showHitbox = debugState.hitbox; });
 
@@ -128,7 +112,6 @@ function setupBattlePanel({ getBattle, renderer }) {
   button(r4, '敵を全滅', (bt) => bt.debugKillEnemies());
   button(r4, 'ボスを出す', (bt, b) => { if (!bt.debugTriggerBoss()) b.textContent = 'ボスなし/出現済み'; });
   button(r4, '城HP -50%', (bt) => { bt.castle.takeDamage(bt.castle.maxHp * 0.5, bt); });
-  button(r4, 'コストLv MAX', (bt) => { bt.time = Math.max(bt.time, 999); });
   const r5 = section('勝敗');
   button(r5, '勝利', (bt) => bt.castle.takeDamage(1e9, bt));
   button(r5, '敗北', (bt) => { bt.debug.invincible = false; bt.life = 0; });

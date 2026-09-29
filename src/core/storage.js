@@ -135,8 +135,13 @@ export const Progress = {
     for (const t of enemyTypes) data.seen[t] = true;
     write(data);
   },
-  debugAddXp(n) {
-    this.addXp(n);
+  /** EXP が min 未満なら min にする */
+  debugEnsureXp(min) {
+    const data = read();
+    if (data.xp < min) {
+      data.xp = min;
+      write(data);
+    }
   },
   debugMaxLevels() {
     const data = read();

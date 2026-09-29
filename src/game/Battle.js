@@ -189,6 +189,7 @@ export class Battle {
 
   /** 経過時間に応じてコストレベルを自動で上げる */
   updateCostLevel() {
+    if (this.debug.infiniteCost) return;
     const lv = costLevelAt(this.time);
     if (lv === this.costLevel) return;
     this.costLevel = lv;
@@ -239,7 +240,11 @@ export class Battle {
     this.updateCostLevel();
     this.money = Math.min(this.costMax, this.money + this.costRate * dt);
     this.special = Math.min(1, this.special + dt / SPECIAL.chargeTime);
-    if (this.debug.infiniteCost) this.money = this.costMax;
+    if (this.debug.infiniteCost) {
+      // デバッグ: コストレベル最大(上限1000)で常に満タン
+      this.costLevel = COST.levels.length - 1;
+      this.money = this.costMax;
+    }
     if (this.debug.noCooldown) this.allyCooldowns = this.allyCooldowns.map(() => 0);
     this.allyCooldowns = this.allyCooldowns.map((c) => Math.max(0, c - dt));
 

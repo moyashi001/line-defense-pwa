@@ -9,7 +9,7 @@ import { Renderer } from './render/Renderer.js';
 import { preloadSprites, getImage } from './render/sprites.js';
 import { ScreenManager, renderWorldList, renderStageList, renderTeam, renderResult, renderZukan, unitsUnlockedBy, latestWorldId } from './ui/screens.js';
 import { DEBUG } from './core/debugFlag.js';
-import { setupDebug, applyDebugToBattle, debugState } from './debug/debugPanel.js';
+import { setupDebug, applyDebugToBattle, applyDebugProgress, debugState } from './debug/debugPanel.js';
 import { BattleUI } from './ui/battleUI.js';
 
 const $ = (id) => document.getElementById(id);
@@ -120,7 +120,10 @@ function openTeam() {
 }
 
 screens.register('world', {
-  enter: () => renderWorldList(openWorld),
+  enter: () => {
+    if (DEBUG) applyDebugProgress(); // デバッグ中は常に全解放・Lv最大・EXP確保
+    renderWorldList(openWorld);
+  },
 });
 
 screens.register('select', {
@@ -143,7 +146,10 @@ screens.register('battle', {
     const deck = Progress.deck().map(allyById);
     ui.buildDeck(deck);
     battle = new Battle(currentStage, { onEvent: onBattleEvent, onEnd: onBattleEnd }, { deck, levels: Progress.levels() });
-    if (DEBUG) applyDebugToBattle(battle, renderer);
+    if (DEBUG) {
+      applyDebugToBattle(battle, renderer);
+      battle.update(0); // コスト1000を開始直後から反映
+    }
     // レイアウト確定後にサイズを取る
     renderer.fx.reset(currentStage.theme);
     requestAnimationFrame(() => {
@@ -226,7 +232,7 @@ if (['localhost', '127.0.0.1'].includes(location.hostname)) {
 
 // ---------- デバッグ(?debug=1) ----------
 if (DEBUG) {
-  setupDebug({ getBattle: () => battle, renderer, refreshWorld: () => renderWorldList(openWorld) });
+  setupDebug({ getBattle: () => battle, renderer });
 }
 
 // ---------- 起動 ----------
