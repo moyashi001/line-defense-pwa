@@ -108,48 +108,49 @@ export const ALLY_UNITS = [
 export const DEFAULT_DECK = ['soldier', 'guard', 'archer', 'lancer', 'cannon'];
 export const DECK_SIZE = 5;
 
-// 敵定義 (baseDamage: 自陣到達時のライフ減少量 / reward: 撃破時にすぐ得られるコスト(雑魚は少量・ボスは多め) / boss: ボス演出対象)
+// 敵定義 (攻撃力は装甲のある味方にも通るよう、雑魚でも十数以上にしている)
+// (baseDamage: 自陣到達時のライフ減少量 / reward: 撃破時にすぐ得られるコスト(雑魚は少量・ボスは多め) / boss: ボス演出対象)
 export const ENEMY_UNITS = {
   slime: {
     name: 'スライム', label: 'ス', shape: 'blob', color: '#9ccc65',
     desc: 'いちばん弱い敵。でも数が多いと手ごわい。',
     sprite: 'assets/sprites/slime.png', spriteFacing: 'left', drawHeight: 30,
-    size: 22, hp: 60, atk: 8, range: 6, speed: 34, attackInterval: 1.0,
+    size: 22, hp: 60, atk: 18, range: 6, speed: 34, attackInterval: 1.0,
     attackType: 'melee', attackFx: 'goo', fxColor: '#ff9ec7', baseDamage: 1, reward: 15,
   },
   bigSlime: {
     name: 'デカスライム', label: 'デ', shape: 'blob', color: '#7cb342',
     desc: 'たおすと小さなスライムに分かれる。範囲こうげきでまとめてたおそう。',
     sprite: 'assets/sprites/slime.png', spriteFacing: 'left', drawHeight: 60,
-    size: 34, hp: 220, atk: 14, range: 6, speed: 26, attackInterval: 1.2,
+    size: 34, hp: 220, atk: 26, range: 6, speed: 26, attackInterval: 1.2,
     attackType: 'melee', attackFx: 'goo', fxColor: '#ff9ec7', baseDamage: 2, reward: 30, splitInto: { type: 'slime', count: 2 },
   },
   goblin: {
     name: 'ゴブリン', label: 'ゴ', shape: 'triangle', color: '#8d6e63',
     desc: '足がとても速い。かべ役で止めてからたおそう。',
     sprite: 'assets/sprites/goblin.png', spriteFacing: 'left', drawHeight: 38,
-    size: 22, hp: 55, atk: 11, range: 6, speed: 72, attackInterval: 0.8,
+    size: 22, hp: 55, atk: 20, range: 6, speed: 72, attackInterval: 0.8,
     attackType: 'melee', attackFx: 'claw', fxColor: '#c6ff7a', baseDamage: 1, reward: 20,
   },
   orc: {
     name: 'ビースト', label: 'ビ', shape: 'square', color: '#607d8b',
     desc: 'かたい体でつっこんでくる。まほうや大砲がよくきく。',
     sprite: 'assets/sprites/orc.png', drawHeight: 104,
-    size: 34, hp: 380, atk: 26, range: 8, speed: 24, attackInterval: 1.5, armor: 12,
+    size: 34, hp: 380, atk: 30, range: 8, speed: 24, attackInterval: 1.5, armor: 12,
     attackType: 'melee', attackFx: 'bite', fxColor: '#fff3e0', baseDamage: 2, reward: 60, knockbacks: 2,
   },
   shieldbearer: {
     name: '盾兵', label: '盾', shape: 'square', color: '#90a4ae',
     desc: '大きなたてで、ほとんどのこうげきをふせぐ。メイジのまほうがきく。',
     sprite: 'assets/sprites/shieldbearer.png', spriteFacing: 'left', drawHeight: 88,
-    size: 30, hp: 260, atk: 14, range: 6, speed: 26, attackInterval: 1.3, armor: 22,
+    size: 30, hp: 260, atk: 20, range: 6, speed: 26, attackInterval: 1.3, armor: 22,
     attackType: 'melee', attackFx: 'bash', fxColor: '#4dd0e1', baseDamage: 2, reward: 50,
   },
   skeletonArcher: {
     name: 'エイリアン兵', label: '銃', shape: 'diamond', color: '#e0e0e0',
     desc: '遠くから光線をうってくる。射程の長いキャラでたおそう。',
     sprite: 'assets/sprites/skeletonArcher.png', drawHeight: 46,
-    size: 24, hp: 80, atk: 15, range: 150, speed: 32, attackInterval: 1.5,
+    size: 24, hp: 80, atk: 20, range: 150, speed: 32, attackInterval: 1.5,
     attackType: 'ranged', projectileStyle: 'laser', projectileSpeed: 380, projectileColor: '#e040fb',
     baseDamage: 1, reward: 40,
   },
@@ -157,14 +158,14 @@ export const ENEMY_UNITS = {
     name: 'コウモリ', label: '蝠', shape: 'triangle', color: '#5e35b1',
     desc: '空を飛ぶので近接こうげきがとどかない。レーザーやメイジでねらおう。',
     sprite: 'assets/sprites/bat.png', drawHeight: 42,
-    size: 22, hp: 70, atk: 12, range: 6, speed: 62, attackInterval: 0.9, flying: true,
+    size: 22, hp: 70, atk: 18, range: 6, speed: 62, attackInterval: 0.9, flying: true,
     attackType: 'melee', attackFx: 'claw', fxColor: '#ff5252', baseDamage: 1, reward: 30,
   },
   iceSprite: {
     name: 'アイス精', label: '氷', shape: 'diamond', color: '#81d4fa',
     desc: 'こおりの玉で、仲間のうごきをおそくする。',
     sprite: 'assets/sprites/iceSprite.png', drawHeight: 50,
-    size: 24, hp: 120, atk: 12, range: 110, speed: 34, attackInterval: 1.6,
+    size: 24, hp: 120, atk: 16, range: 110, speed: 34, attackInterval: 1.6,
     attackType: 'ranged', projectileStyle: 'orb', projectileSpeed: 340, projectileColor: '#b3e5fc',
     slowOnHit: { factor: 0.5, duration: 2.5 },
     baseDamage: 1, reward: 40,
@@ -173,7 +174,7 @@ export const ENEMY_UNITS = {
     name: 'シャーマン', label: '呪', shape: 'star', color: '#ab47bc',
     desc: 'まわりの敵を回復する。先にたおそう。',
     sprite: 'assets/sprites/shaman.png', drawHeight: 66,
-    size: 26, hp: 150, atk: 8, range: 120, speed: 30, attackInterval: 1.6,
+    size: 26, hp: 150, atk: 11, range: 120, speed: 30, attackInterval: 1.6,
     attackType: 'ranged', projectileStyle: 'orb', projectileSpeed: 340, projectileColor: '#b388ff',
     heal: { amount: 30, radius: 120, interval: 4 },
     baseDamage: 1, reward: 60,
