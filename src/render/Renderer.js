@@ -17,6 +17,9 @@ export class Renderer {
     this.shakePower = 0;
     this.fx = new Effects(this);
     this.showHitbox = false; // デバッグ: 当たり判定と射程を表示
+    // カメラ(ボス登場・必殺技・城の崩壊でズーム)
+    this.cam = { zoom: 1, target: 1, fx: 0, fy: 0, hold: 0 };
+    this.pan = 0; // 前線の位置に合わせて背景を少しずらす(奥行き感)
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
@@ -41,6 +44,19 @@ export class Renderer {
     this.shakeTime = Math.max(this.shakeTime, duration);
   }
 
+  /** カメラを寄せる(xWorld: 注目するワールドx, zoom: 倍率, hold: 寄せている秒数) */
+  focus(xWorld, zoom, hold) {
+    this.cam.fx = this.toScreenX(xWorld);
+    this.cam.fy = this.groundY - 40 * this.k;
+    this.cam.target = zoom;
+    this.cam.hold = hold;
+  }
+
+  resetCamera() {
+    this.cam = { zoom: 1, target: 1, fx: 0, fy: 0, hold: 0 };
+    this.pan = 0;
+  }
+
   toScreenX(x) { return x * this.sx; }
   toScreenY(laneY) { return this.groundY + laneY * this.k; }
   /** 飛行ユニットの浮き上がり量(px) */
@@ -61,8 +77,24 @@ export class Renderer {
 
     this.fx.update(dt);
 
-    this.drawBackground(theme);
+    // カメラ: 目標の倍率へなめらかに寄る/戻る
+    const cam = this.cam;
+    if (cam.hold > 0) cam.hold -= dt;
+    else cam.target = 1;
+    cam.zoom += (cam.target - cam.zoom) * Math.min(1, dt * 5);
+    // 前線(一番前の味方)に合わせて背景をゆっくりずらす
+    const front = battle.units.reduce((m, u) => (u.side === 'ally' && u.alive ? Math.max(m, u.x) : m), 300);
+    this.pan += ((front / WORLD.length - 0.5) * 30 - this.pan) * Math.min(1, dt * 1.5);
+
+    // 背景は奥にあるので、ズームも移動も控えめ(視差)
+    ctx.save();
+    this.applyCamera(1 + (cam.zoom - 1) * 0.45);
+    this.drawBackground(theme, -this.pan);
+    ctx.restore();
     this.fx.drawBack(ctx);
+
+    ctx.save();
+    this.applyCamera(cam.zoom);
     this.drawCastle(battle.castle);
     this.drawBase(battle);
 
@@ -81,25 +113,36 @@ export class Renderer {
       this.drawProjectile(p);
     }
     for (const e of battle.effects) this.drawEffect(e);
+    this.fx.drawDarkness(ctx, theme);
     this.fx.drawFront(ctx);
+    this.fx.drawLights(ctx);
     for (const p of battle.popups) this.drawPopup(p);
     if (this.showHitbox) this.drawHitboxes(battle);
-    ctx.restore();
+    ctx.restore(); // カメラ
+    ctx.restore(); // 画面揺れ
 
     this.drawBossOverlay(battle);
     this.fx.drawOverlay(ctx);
     this.drawTopBars(battle);
   }
 
-  drawBackground(theme) {
+  applyCamera(zoom) {
+    if (Math.abs(zoom - 1) < 0.001) return;
+    const { fx, fy } = this.cam;
+    this.ctx.translate(fx, fy);
+    this.ctx.scale(zoom, zoom);
+    this.ctx.translate(-fx, -fy);
+  }
+
+  drawBackground(theme, offsetX = 0) {
     const { ctx, w, h, groundY } = this;
     const bg = getImage(theme.bg);
     if (bg) {
-      // 画面を覆うように拡大し、下端(地面側)を合わせる
-      const scale = Math.max(w / bg.naturalWidth, h / bg.naturalHeight);
+      // 画面を覆うように拡大し(左右にずらす余白の分だけ少し大きく)、下端(地面側)を合わせる
+      const scale = Math.max((w + 40) / bg.naturalWidth, h / bg.naturalHeight);
       const dw = bg.naturalWidth * scale;
       const dh = bg.naturalHeight * scale;
-      ctx.drawImage(bg, (w - dw) / 2, h - dh, dw, dh);
+      ctx.drawImage(bg, (w - dw) / 2 + offsetX, h - dh, dw, dh);
       return;
     }
     const sky = ctx.createLinearGradient(0, 0, 0, groundY);

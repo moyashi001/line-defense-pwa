@@ -28,6 +28,7 @@ export class BattleUI {
     this.cache = {}; // DOM更新を最小限にするための前回値
     this.el.special.addEventListener('pointerdown', (e) => {
       e.preventDefault();
+      this.pulse(this.el.special, 'pressed');
       this.actions.onSpecial?.();
     });
   }
@@ -43,6 +44,7 @@ export class BattleUI {
       // タップ反応を速くするため pointerdown を使う
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        this.pulse(btn, 'pressed');
         this.actions.onSpawn(i);
       });
       wrap.appendChild(btn);
@@ -77,6 +79,9 @@ export class BattleUI {
     this.setText('money', el.moneyText, `${money} / ${battle.costMax}`);
     el.moneyFill.style.width = `${(battle.money / battle.costMax) * 100}%`;
 
+    // 撃破報酬などで一気に増えたら数字を弾ませる
+    if (this.cache.lastMoney !== undefined && money - this.cache.lastMoney >= 10) this.pulse(el.costNow, 'bump');
+    this.cache.lastMoney = money;
     this.setText('costNow', el.costNow, String(money));
     const lvText = battle.costLevel + 1 >= battle.costMaxLevel ? 'MAX' : `Lv${battle.costLevel + 1}`;
     if (this.cache.lv !== undefined && this.cache.lv !== lvText) this.pulse(el.costNow.parentElement, 'lvup');
@@ -108,6 +113,29 @@ export class BattleUI {
       }
       b.ready = ready;
     });
+  }
+
+  /** 開始の「READY… GO!」(ボスステージはボスの顔を大きく見せる) */
+  showIntro(stage, bossDef) {
+    const intro = $('intro');
+    const text = $('intro-text');
+    const sub = $('intro-sub');
+    const canvas = $('intro-boss');
+    clearTimeout(this._introTimer);
+    intro.className = `intro show${bossDef ? ' boss' : ''}`;
+    sub.textContent = bossDef ? `⚠ BOSS STAGE ⚠  ${bossDef.name}` : `STAGE ${stage.label}  ${stage.name}`;
+    text.textContent = 'READY…';
+    text.className = 'intro-text ready';
+    if (bossDef) requestAnimationFrame(() => drawUnitIcon(canvas, bossDef, bossDef.spriteFacing === 'left' ? 1 : -1));
+    this._introTimer = setTimeout(() => {
+      text.textContent = 'GO!';
+      text.className = 'intro-text go';
+    }, 950);
+  }
+
+  hideIntro() {
+    clearTimeout(this._introTimer);
+    $('intro').classList.remove('show');
   }
 
   /** 要素に一度だけアニメーション用クラスを付ける */

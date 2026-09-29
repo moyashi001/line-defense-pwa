@@ -19,13 +19,27 @@ export class ScreenManager {
   }
 
   show(name, params) {
+    const first = !this.current;
     if (this.current) {
       this.handlers[this.current]?.leave?.();
       $(`screen-${this.current}`).classList.remove('active');
     }
     this.current = name;
-    $(`screen-${name}`).classList.add('active');
+    const el = $(`screen-${name}`);
+    el.classList.add('active');
     this.handlers[name]?.enter?.(params);
+    if (!first) this.playTransition(name === 'battle' ? 'iris' : 'wipe', el);
+  }
+
+  /** 切り替え演出: 戦闘へは円が広がるアイリス、それ以外は斜めのワイプ(画面の切り替え自体は即座) */
+  playTransition(kind, el) {
+    const restart = (node, cls) => {
+      node.classList.remove(cls);
+      void node.offsetWidth;
+      node.classList.add(cls);
+    };
+    if (kind === 'iris') restart(el, 'iris-in');
+    else restart($('wipe'), 'play');
   }
 }
 
@@ -183,11 +197,34 @@ export function renderResult(result, stage, info) {
   $('result-stage').textContent = `${stage.label} ${stage.name}`;
   $('result-time').textContent = result.win ? formatTime(result.time) : '--:--';
   $('result-kills').textContent = `${result.kills} 体`;
-  $('result-xp').textContent = `+${info.xp}`;
+  countUp($('result-xp'), info.xp, '+');
+  // タイトルを弾ませる
+  title.classList.remove('pop');
+  void title.offsetWidth;
+  title.classList.add('pop');
+
   const unlock = $('result-unlock');
-  unlock.textContent = info.unlocked.length ? `新しい仲間: ${info.unlocked.map((d) => d.name).join('・')}！ (編成画面で追加できます)` : '';
-  unlock.style.display = info.unlocked.length ? '' : 'none';
+  const def = info.unlocked[0];
+  unlock.classList.toggle('show', !!def);
+  if (def) {
+    $('unlock-name').textContent = info.unlocked.map((d) => d.name).join('・');
+    requestAnimationFrame(() => drawUnitIcon($('unlock-icon'), def));
+  }
   $('btn-next').style.display = result.win && info.hasNext ? '' : 'none';
+}
+
+/** 数字を0からカウントアップ表示する */
+function countUp(el, value, prefix = '') {
+  const start = performance.now();
+  const dur = 900;
+  clearTimeout(el._countTimer);
+  const tick = () => {
+    const p = Math.min(1, (performance.now() - start) / dur);
+    el.textContent = prefix + Math.round(value * (1 - (1 - p) ** 3));
+    if (p < 1) el._countTimer = setTimeout(tick, 30);
+  };
+  el.textContent = prefix + '0';
+  el._countTimer = setTimeout(tick, 250);
 }
 
 /** ステージクリアで新しく解放される味方 */

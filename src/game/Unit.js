@@ -119,7 +119,7 @@ export class Unit {
   die(battle) {
     this.dead = true;
     this.state = 'dying';
-    this.removeTimer = 0.5;
+    this.removeTimer = 0.9; // sprites.js の DEATH_TIME と同じ
     battle.fx('death', { x: this.x, laneY: this.laneY, flying: this.flying, side: this.side, size: this.def.size });
     battle.onUnitDied(this);
   }

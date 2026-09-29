@@ -34,6 +34,7 @@ export class Effects {
     this.beams = [];
     this.flashes = [];    // 画面全体のフラッシュ
     this.special = null;  // 必殺技ビーム
+    this.lights = [];     // 爆発や炎がまわりを照らす光
     this.ambient = theme ? AMBIENT[theme.ambient] ?? null : null;
     this.ambientAcc = 0;
     this.darken = 0;      // 敗北時の暗転(0〜1)
@@ -43,8 +44,13 @@ export class Effects {
   }
 
   add(p) {
+    // 閃光はまわりも照らす
+    if (p.kind === 'flash' || p.kind === 'flame') {
+      this.lights.push({ x: p.x, laneY: p.laneY ?? 0, h: p.h ?? 0, radius: (p.size ?? 10) * (p.kind === 'flame' ? 4 : 3.5), color: p.color, t: 0, life: (p.life ?? 0.2) * 1.6 });
+      if (this.lights.length > 40) this.lights.shift();
+    }
     if (this.parts.length >= MAX_PARTICLES) this.parts.shift();
-    this.parts.push({ t: 0, rot: 0, vr: 0, g: 0, vx: 0, vh: 0, h: 0, laneY: 0, ...p });
+    this.parts.push({ t: 0, rot: 0, vr: 0, g: 0, vx: 0, vh: 0, h: 0, laneY: 0, delay: 0, ...p });
   }
 
   // ---------- イベント → 見た目 ----------
@@ -216,6 +222,12 @@ export class Effects {
     if (ev.side === 'enemy') {
       for (let i = 0; i < 5; i++) this.add({ kind: 'dot', glow: true, x: ev.x, laneY: ev.laneY, h: h0, vx: rand(-40, 40), vh: rand(40, 110), g: 220, life: rand(0.4, 0.7), size: rand(1.5, 2.5), color: '#ffd84d' });
     }
+    // 吹っ飛んだ先でキラッと光る(sprites.js の吹っ飛び軌道の終点あたり)
+    if (!big) {
+      const dir = ev.side === 'ally' ? 1 : -1;
+      const { k, sx } = this.r;
+      this.add({ kind: 'star', x: ev.x - (dir * 110 * k * 0.75) / (sx || 1), laneY: ev.laneY, h: h0 + 75, delay: 0.62, life: 0.35, size: 9, color: '#ffffff' });
+    }
     if (big) this.flash('#ffffff', 0.25, 0.25);
   }
 
@@ -280,6 +292,7 @@ export class Effects {
   update(dt) {
     if (!dt) return;
     for (const p of this.parts) {
+      if (p.delay > 0) { p.delay -= dt; continue; }
       p.t += dt;
       p.x += p.vx * dt;
       p.h += p.vh * dt;
@@ -297,6 +310,8 @@ export class Effects {
     }
     this.screen = this.screen.filter((p) => p.t < p.life);
 
+    for (const l of this.lights) l.t += dt;
+    this.lights = this.lights.filter((l) => l.t < l.life);
     for (const b of this.beams) b.t += dt;
     this.beams = this.beams.filter((b) => b.t < b.life);
     if (this.special) {
@@ -352,6 +367,7 @@ export class Effects {
     if (this.special) this.drawSpecial(ctx, this.special);
     for (const b of this.beams) this.drawBeam(ctx, b);
     for (const p of this.parts) {
+      if (p.delay > 0) continue;
       const [x, y] = this.pos(p);
       const prog = p.t / p.life;
       const alpha = 1 - prog;
@@ -470,6 +486,20 @@ export class Effects {
           }
           break;
         }
+        case 'star': {
+          // 4方向に伸びるキラッとした光
+          const r = s * Math.sin(prog * Math.PI) * 1.4;
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.beginPath();
+          for (let i = 0; i < 8; i++) {
+            const a = (Math.PI / 4) * i + prog * 2;
+            const rr = i % 2 === 0 ? r : r * 0.22;
+            ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          }
+          ctx.closePath();
+          ctx.fill();
+          break;
+        }
         case 'flame':
           ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = Math.max(0, alpha * 0.8);
@@ -562,6 +592,44 @@ export class Effects {
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 2 * r.k * (1 - prog);
     ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.restore();
+  }
+
+  /** 暗いワールドでは画面をうっすら暗くして、光を目立たせる */
+  drawDarkness(ctx, theme) {
+    const d = theme?.dark ?? 0;
+    if (!d) return;
+    const { w, h } = this.r;
+    const g = ctx.createRadialGradient(w / 2, h * 0.7, h * 0.3, w / 2, h * 0.6, w * 0.75);
+    g.addColorStop(0, `rgba(0,0,10,${d * 0.3})`);
+    g.addColorStop(1, `rgba(0,0,10,${d})`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  /** 爆発・炎・必殺技などの光(加算合成でまわりを照らす) */
+  drawLights(ctx) {
+    const { r } = this;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for (const l of this.lights) {
+      const a = (1 - l.t / l.life) * 0.35;
+      const x = r.toScreenX(l.x);
+      const y = r.toScreenY(l.laneY) - l.h * r.k;
+      const rad = l.radius * r.k;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+      g.addColorStop(0, l.color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = a;
+      ctx.fillStyle = g;
+      ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    }
+    // 必殺技の光は画面全体をやさしく照らす
+    if (this.special) {
+      ctx.globalAlpha = 0.25 * (1 - this.special.t / this.special.life);
+      ctx.fillStyle = '#8ff3ff';
+      ctx.fillRect(0, 0, r.w, r.h);
+    }
     ctx.restore();
   }
 

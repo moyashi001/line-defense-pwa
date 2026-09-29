@@ -43,7 +43,7 @@ export const WORLDS = [
   {
     id: 3,
     name: '水晶洞窟',
-    theme: { bg: 'assets/bg/world3.jpg', ambient: 'sparkle', sky: ['#1d3b3a', '#2e5a55'], ground: '#3b4a4f', groundDark: '#263238', card: '#2e6b62' },
+    theme: { bg: 'assets/bg/world3.jpg', ambient: 'sparkle', dark: 0.3, sky: ['#1d3b3a', '#2e5a55'], ground: '#3b4a4f', groundDark: '#263238', card: '#2e6b62' },
     life: 7,
     names: ['洞窟の入口', '水晶の回廊', '光る地底湖', 'コウモリの巣', '氷の巨人'],
     pool: [
@@ -58,7 +58,7 @@ export const WORLDS = [
   {
     id: 4,
     name: '魔王城',
-    theme: { bg: 'assets/bg/world4.jpg', ambient: 'embers', sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
+    theme: { bg: 'assets/bg/world4.jpg', ambient: 'embers', dark: 0.35, sky: ['#2a1a3d', '#6a3d6e'], ground: '#4a4458', groundDark: '#332d40', card: '#5a2d6e' },
     life: 6,
     names: ['魔界の門', '闇の回廊', '呪いの広間', '竜の間', '魔王の玉座'],
     pool: [

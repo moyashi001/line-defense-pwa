@@ -98,6 +98,11 @@
       <div class="field">
         <canvas id="battle-canvas"></canvas>
         <div id="battle-banner" class="banner"></div>
+        <div id="intro" class="intro">
+          <canvas id="intro-boss" class="intro-boss"></canvas>
+          <div id="intro-sub" class="intro-sub"></div>
+          <div id="intro-text" class="intro-text"></div>
+        </div>
       </div>
       <div class="deck">
         <div class="cost-box">
@@ -131,7 +136,11 @@
           <dt>撃破数</dt><dd id="result-kills"></dd>
           <dt>獲得EXP</dt><dd id="result-xp" class="xp-text"></dd>
         </dl>
-        <p id="result-unlock" class="result-unlock"></p>
+        <div id="result-unlock" class="unlock-card">
+          <div class="unlock-rays"></div>
+          <canvas id="unlock-icon" class="unlock-icon"></canvas>
+          <div class="unlock-text"><small>新しい仲間！</small><b id="unlock-name"></b><span>編成画面で追加できます</span></div>
+        </div>
         <div class="result-actions">
           <button id="btn-next" class="btn btn-primary">次のステージへ</button>
           <button id="btn-retry" class="btn">もう一度</button>
@@ -140,6 +149,9 @@
         </div>
       </div>
     </section>
+
+    <!-- 画面切り替えのワイプ -->
+    <div id="wipe" class="wipe"></div>
 
     <!-- 縦画面時の案内 -->
     <div id="rotate-notice">

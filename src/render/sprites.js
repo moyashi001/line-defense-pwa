@@ -33,6 +33,27 @@ function spriteFor(def) {
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
+// 被弾時などに使う「色を塗った画像」のキャッシュ(画像の形だけを色で塗りつぶしたもの)
+const tintCache = new Map();
+function tinted(img, color) {
+  const key = img.src + color;
+  let c = tintCache.get(key);
+  if (!c) {
+    c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = color;
+    g.fillRect(0, 0, c.width, c.height);
+    tintCache.set(key, c);
+  }
+  return c;
+}
+
+export const DEATH_TIME = 0.9; // やられ演出の長さ(Unit.die と合わせる)
+
 /** 見た目の高さ(ワールド単位)。HPバーの位置合わせ用 */
 export function visualHeight(def) {
   if (!spriteFor(def)) return def.size;
@@ -50,23 +71,61 @@ export function visualHeight(def) {
 export function drawUnit(ctx, unit, x, y, scale) {
   const def = unit.def;
   const s = def.size * scale;
-
-  // アニメーション: 歩行時の上下ゆれ / 攻撃時の突き出し / 死亡時フェード
-  const bob = unit.state === 'walk' ? Math.abs(Math.sin(unit.animTime * 10)) * s * 0.08 : 0;
-  const lunge = unit.attackAnim > 0 ? Math.sin((unit.attackAnim / 0.25) * Math.PI) * s * 0.25 * unit.dir : 0;
+  const dir = unit.dir;
+  const t = unit.animTime;
 
   ctx.save();
-  ctx.translate(x + lunge, y - bob);
-  // 出現直後はふわっと現れる
-  if (unit.age < 0.3) {
-    const a = unit.age / 0.3;
-    ctx.globalAlpha = a;
-    ctx.scale(0.6 + 0.4 * a, 0.6 + 0.4 * a);
-  }
+  ctx.translate(x, y);
+
+  // ---- やられ演出 ----
   if (unit.dead) {
-    const a = Math.max(0, unit.removeTimer / 0.5);
-    ctx.globalAlpha = a;
-    ctx.translate(0, -(1 - a) * s * 0.6);
+    const dt = 1 - Math.max(0, unit.removeTimer) / (unit.deathStyle === 'fade' ? 0.3 : DEATH_TIME);
+    if (unit.deathStyle === 'fade') {
+      ctx.globalAlpha = 1 - dt;
+      ctx.translate(0, -dt * s * 0.6);
+    } else {
+      // 回転しながら奥へ吹っ飛んで小さくなる
+      const big = def.boss ? 0.35 : 1;
+      ctx.translate(-dir * 110 * scale * dt * big, -(160 * dt - 60 * dt * dt) * scale * big);
+      ctx.rotate(-dir * dt * 9 * big);
+      const sc = 1 - 0.75 * dt;
+      ctx.scale(sc, sc);
+      ctx.globalAlpha = dt < 0.75 ? 1 : 1 - (dt - 0.75) / 0.25;
+    }
+  } else {
+    // ---- 生きているときの動き ----
+    if (unit.state === 'walk') {
+      // 前傾して、跳ねるように歩く
+      const step = Math.sin(t * 10);
+      ctx.translate(0, -Math.abs(step) * s * 0.08);
+      ctx.rotate(dir * (0.06 + step * 0.04));
+    } else if (unit.state === 'knockback') {
+      ctx.rotate(-dir * 0.25);
+    } else {
+      // 待機・攻撃待ち: 呼吸するように伸び縮み
+      const br = Math.sin(t * 3) * 0.03;
+      ctx.scale(1 - br, 1 + br);
+    }
+    if (unit.state === 'attack' && unit.cooldown > 0 && unit.cooldown < 0.2 && unit.attackAnim <= 0) {
+      // 攻撃直前: 後ろにためる
+      const w = 1 - unit.cooldown / 0.2;
+      ctx.translate(-dir * s * 0.15 * w, 0);
+      ctx.rotate(-dir * 0.12 * w);
+      ctx.scale(1 + 0.08 * w, 1 - 0.08 * w);
+    }
+    if (unit.attackAnim > 0) {
+      // 攻撃: 前へ突き出して伸びる
+      const a = Math.sin((unit.attackAnim / 0.25) * Math.PI);
+      ctx.translate(dir * s * 0.3 * a, 0);
+      ctx.rotate(dir * 0.1 * a);
+      ctx.scale(1 + 0.1 * a, 1 - 0.06 * a);
+    }
+    // 出現直後はふわっと現れる
+    if (unit.age < 0.3) {
+      const a = unit.age / 0.3;
+      ctx.globalAlpha = a;
+      ctx.scale(0.6 + 0.4 * a, 0.6 + 0.4 * a);
+    }
   }
 
   const img = spriteFor(def);
@@ -76,10 +135,12 @@ export function drawUnit(ctx, unit, x, y, scale) {
     const h = visualHeight(def) * scale;
     const w = (img.naturalWidth / img.naturalHeight) * h;
     ctx.drawImage(img, -w / 2, -h, w, h);
-    if (unit.hitFlash > 0) {
-      ctx.globalCompositeOperation = 'source-atop';
-      ctx.fillStyle = 'rgba(255,255,255,.7)';
-      ctx.fillRect(-w / 2, -h, w, h);
+    // 被弾で赤く、回復で緑に光る(絵の形だけを塗る)
+    if (unit.hitFlash > 0 || unit.healFlash > 0) {
+      const a = ctx.globalAlpha;
+      ctx.globalAlpha = a * (unit.hitFlash > 0 ? 0.65 : 0.35);
+      ctx.drawImage(tinted(img, unit.hitFlash > 0 ? '#ff2a2a' : '#7cff9a'), -w / 2, -h, w, h);
+      ctx.globalAlpha = a;
     }
   } else {
     const fill = unit.hitFlash > 0 ? '#ffffff' : unit.healFlash > 0 ? '#b9ffc8' : null;

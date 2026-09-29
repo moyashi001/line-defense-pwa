@@ -22,6 +22,8 @@ const screens = new ScreenManager();
 const renderer = new Renderer($('battle-canvas'));
 
 let battle = null;
+let hitStop = 0;     // ヒットストップ(大きな一撃の瞬間に止める秒数)
+let introTimer = 0;  // 開始の「READY… GO!」の間は戦闘を止める
 let currentStage = null;
 let currentWorldId = null;
 let teamReturn = 'world'; // 編成画面から戻る先
@@ -34,6 +36,17 @@ const ui = new BattleUI({
 
 const loop = new GameLoop((dt) => {
   if (!battle) return;
+  if (hitStop > 0 || introTimer > 0) {
+    // 一瞬止める(描画だけ続ける)
+    hitStop = Math.max(0, hitStop - dt);
+    if (introTimer > 0 && !paused) {
+      introTimer -= dt;
+      if (introTimer <= 0) ui.hideIntro();
+    }
+    renderer.render(battle, introTimer > 0 ? dt : 0);
+    ui.update(battle);
+    return;
+  }
   const speed = DEBUG ? debugState.speed : 1; // デバッグの倍速
   for (let i = 0; i < speed && battle && !paused; i++) battle.update(dt);
   if (!battle) return; // update 中に結果画面へ遷移した
@@ -52,13 +65,17 @@ function onBattleEvent(type, payload) {
   switch (type) {
     case 'fx':
       renderer.fx.emit(payload);
+      if ((payload.kind === 'hit' || payload.kind === 'castleHit') && payload.dmg >= 80) hitStop = Math.max(hitStop, 0.05);
       break;
     case 'wave':
-      if (!battle?.bossWarning) ui.showBanner(`WAVE ${payload.count}`, '#fff', 1200);
+      // WAVE 1 は開始の「READY… GO!」と重なるので出さない
+      if (payload.count > 1 && !battle?.bossWarning) ui.showBanner(`WAVE ${payload.count}`, '#fff', 1200);
       break;
     case 'special':
       ui.showBanner(SPECIAL.name + '！', '#8ff3ff', 1200);
       renderer.shake(9, 0.8);
+      renderer.focus(500, 1.08, 0.8);
+      hitStop = Math.max(hitStop, 0.12);
       break;
     case 'bossWarning':
       ui.showBanner('⚠ WARNING ⚠', '#ff4d4d', 2500, true);
@@ -68,6 +85,8 @@ function onBattleEvent(type, payload) {
       ui.showBanner(`${payload.def.name} 出現！`, '#ff4d4d', 1800, true);
       renderer.shake(10, 0.8);
       renderer.fx.emit({ kind: 'bossSpawn', x: payload.x, laneY: payload.laneY });
+      renderer.focus(payload.x - 60, 1.18, 1.4);
+      hitStop = Math.max(hitStop, 0.1);
       break;
     case 'bossAttack':
       renderer.shake(5, 0.25);
@@ -75,6 +94,8 @@ function onBattleEvent(type, payload) {
     case 'castleDestroyed':
       renderer.shake(8, 1.2);
       renderer.fx.emit({ kind: 'castleDestroyed', x: payload.x });
+      renderer.focus(payload.x - 40, 1.2, 2.2);
+      hitStop = Math.max(hitStop, 0.18);
       break;
     case 'end':
       ui.showBanner(payload.win ? 'CLEAR!' : 'DEFEAT...', payload.win ? '#ffcf3f' : '#ff6b6b', 0);
@@ -152,6 +173,10 @@ screens.register('battle', {
     }
     // レイアウト確定後にサイズを取る
     renderer.fx.reset(currentStage.theme);
+    renderer.resetCamera();
+    hitStop = 0;
+    introTimer = 1.5;
+    ui.showIntro(currentStage, currentStage.boss ? ENEMY_UNITS[currentStage.boss.spawns[0].type] : null);
     requestAnimationFrame(() => {
       renderer.resize();
       renderer.fx.reset(currentStage.theme);
@@ -161,6 +186,7 @@ screens.register('battle', {
   },
   leave: () => {
     loop.stop();
+    ui.hideIntro();
     // 図鑑用: 出会った敵と撃破数を保存(途中リタイアでも記録する)
     if (battle) Progress.recordBattle(battle.seenTypes, battle.killCounts);
     battle = null;

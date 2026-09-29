@@ -281,6 +281,7 @@ export class Battle {
         this.life = Math.max(0, this.life - dmg);
         u.dead = true;
         u.state = 'dying';
+        u.deathStyle = 'fade';
         u.removeTimer = 0.3;
         this.addPopup(WORLD.allyBaseX, `-${dmg}`, '#ff6b6b', 60);
         this.effects.push({ type: 'breach', x: WORLD.allyBaseX, t: 0, life: 0.4 });
@@ -326,7 +327,8 @@ export class Battle {
       if (u.side !== 'enemy' || !u.alive) continue;
       u.dead = true;
       u.state = 'dying';
-      u.removeTimer = 0.5;
+      u.deathStyle = 'fade';
+      u.removeTimer = 0.3;
     }
     this.spawnQueue = [];
     this.addExplosion(castle.x, 90);
