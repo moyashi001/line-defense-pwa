@@ -56,7 +56,7 @@ export const ALLY_UNITS = [
   },
   {
     id: 'cannon', name: 'キャノン', role: '砲撃', label: '砲', shape: 'hex', color: '#e57373',
-    sprite: 'assets/sprites/cannon.png', drawHeight: 96,
+    sprite: 'assets/sprites/cannon.png', drawHeight: 145,
     size: 34, hp: 260, atk: 100, range: 280, speed: 22, attackInterval: 3.2,
     attackType: 'ranged', projectileStyle: 'shell', projectileSpeed: 320, projectileColor: '#333', splash: 60,
     cost: 450, cooldown: 15,
