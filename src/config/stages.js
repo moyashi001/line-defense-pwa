@@ -16,7 +16,7 @@ export const WORLDS = [
   {
     id: 1,
     name: '草原',
-    theme: { sky: ['#7ec8f2', '#d9f3ff'], ground: '#6fbf4a', groundDark: '#4e9a33', card: '#3f8f3a' },
+    theme: { bg: 'assets/bg/world1.jpg', sky: ['#7ec8f2', '#d9f3ff'], ground: '#6fbf4a', groundDark: '#4e9a33', card: '#3f8f3a' },
     life: 10,
     names: ['はじまりの草原', '風の丘', 'スライム沼', '小川の橋', '草原の主'],
     pool: [
@@ -29,7 +29,7 @@ export const WORLDS = [
   {
     id: 2,
     name: '砂漠',
-    theme: { sky: ['#f7b267', '#fde2b8'], ground: '#e0b35a', groundDark: '#b8893a', card: '#b8742a' },
+    theme: { bg: 'assets/bg/world2.jpg', sky: ['#f7b267', '#fde2b8'], ground: '#e0b35a', groundDark: '#b8893a', card: '#b8742a' },
     life: 8,
     names: ['砂の入口', '灼熱の砂丘', 'オアシス', '骨の谷', 'オーク王の砦'],
     pool: [
@@ -42,10 +42,10 @@ export const WORLDS = [
   },
   {
     id: 3,
-    name: '雪山',
-    theme: { sky: ['#b3c7de', '#eef4fb'], ground: '#e8eef5', groundDark: '#b7c4d3', card: '#5b7fa6' },
+    name: '水晶洞窟',
+    theme: { bg: 'assets/bg/world3.jpg', sky: ['#1d3b3a', '#2e5a55'], ground: '#3b4a4f', groundDark: '#263238', card: '#2e6b62' },
     life: 7,
-    names: ['雪山のふもと', '氷の洞窟', '吹雪の峠', 'コウモリの巣', '氷の巨人'],
+    names: ['洞窟の入口', '水晶の回廊', '光る地底湖', 'コウモリの巣', '氷の巨人'],
     pool: [
       { type: 'bat', base: 3, interval: 2, from: 0 },
       { type: 'goblin', base: 4, interval: 1.4, from: 0 },
@@ -141,6 +141,9 @@ function buildStage(world, local) {
 
 export const STAGES = WORLDS.flatMap((world) =>
   Array.from({ length: STAGES_PER_WORLD }, (_, local) => buildStage(world, local)));
+
+/** 背景画像のパス(ない場合は null)。ステージ選択カードで使う */
+export const stageBg = (stage) => stage.theme.bg ?? null;
 
 /** ステージの説明文(選択画面用): 新しく出てくる敵やボスを紹介 */
 export function stageIntro(stage, enemyDefs) {

@@ -1,5 +1,5 @@
 // 画面切り替えと、ステージ選択/編成・強化/結果画面のDOM処理
-import { STAGES, WORLDS, stageIntro } from '../config/stages.js';
+import { STAGES, WORLDS, stageIntro, stageBg } from '../config/stages.js';
 import { ALLY_UNITS, ENEMY_UNITS, DECK_SIZE } from '../config/units.js';
 import { LEVEL } from '../config/constants.js';
 import { Progress } from '../core/storage.js';
@@ -64,7 +64,10 @@ export function renderStageList(onSelect) {
 
     const card = document.createElement('button');
     card.className = `stage-card${unlocked ? '' : ' locked'}${cleared ? ' cleared' : ''}${stage.boss ? ' boss' : ''}`;
-    card.style.background = `linear-gradient(160deg, ${stage.theme.card}, ${stage.theme.groundDark})`;
+    const bg = stageBg(stage);
+    card.style.background = bg
+      ? `linear-gradient(160deg, ${stage.theme.card}cc, #000a), center / cover url(${bg})`
+      : `linear-gradient(160deg, ${stage.theme.card}, ${stage.theme.groundDark})`;
     card.disabled = !unlocked;
     card.innerHTML = `
       <div>

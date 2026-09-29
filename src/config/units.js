@@ -3,6 +3,7 @@
 //   sprite                : 画像パス(例 'assets/sprites/soldier.png')。設定すると自動で画像描画に切り替わる
 //                           右向き・足元が画像の下端・背景透過の PNG
 //   spriteScale           : 画像の表示高さ = size × この倍率(当たり判定より大きく見せる。既定 1.6)
+//   spriteFacing          : 画像の向き 'right'(既定) | 'left'。進行方向に合わせて自動で反転する
 //   role                  : ボタン・編成画面に表示する役割
 //   attackType            : 'melee'(単体近接) | 'area'(範囲近接) | 'ranged'(飛び道具)
 //   range                 : 相手との隙間がこの値以下なら攻撃
@@ -19,8 +20,8 @@
 // 相性の目安:
 //   スライムの群れ / 分裂 → ランサー(範囲) / キャノン(爆風)
 //   オーク・盾兵(装甲)    → メイジ(装甲無視) / キャノン / ランサー
-//   コウモリ(飛行)        → アーチャー / メイジ / キャノン / ウィング
-//   ホネ弓兵・シャーマン  → 射程で勝るアーチャー・メイジ・キャノン、ガードで受ける
+//   コウモリ(飛行)        → レーザー / メイジ / キャノン / ウィング
+//   ホネ弓兵・シャーマン  → 射程で勝るレーザー・メイジ・キャノン、ガードで受ける
 //   ボス                  → 壁役を並べて遠距離で削る。ヒーラーで壁を長持ちさせる
 
 export const ALLY_UNITS = [
@@ -37,7 +38,7 @@ export const ALLY_UNITS = [
     attackType: 'melee', cost: 100, cooldown: 6, knockbacks: 3,
   },
   {
-    id: 'archer', name: 'アーチャー', role: '遠距離', label: '弓', shape: 'triangle', color: '#ffb74d',
+    id: 'archer', name: 'レーザー', role: '遠距離', label: '光', shape: 'triangle', color: '#ffb74d',
     sprite: 'assets/sprites/archer.png', spriteScale: 1.9,
     size: 24, hp: 70, atk: 26, range: 170, speed: 40, attackInterval: 1.3,
     attackType: 'ranged', projectileSpeed: 420, projectileColor: '#7dffb0',
@@ -95,6 +96,7 @@ export const DECK_SIZE = 5;
 export const ENEMY_UNITS = {
   slime: {
     name: 'スライム', label: 'ス', shape: 'blob', color: '#9ccc65',
+    sprite: 'assets/sprites/slime.png', spriteFacing: 'left', spriteScale: 1.5,
     size: 22, hp: 60, atk: 8, range: 6, speed: 34, attackInterval: 1.0,
     attackType: 'melee', baseDamage: 1, reward: 15,
   },
@@ -153,6 +155,7 @@ export const ENEMY_UNITS = {
   },
   orcKing: {
     name: 'オーク王', label: '王', shape: 'square', color: '#37474f', boss: true,
+    sprite: 'assets/sprites/orcKing.png', spriteFacing: 'left', spriteScale: 1.4,
     size: 64, hp: 3000, atk: 60, range: 14, speed: 18, attackInterval: 1.8, armor: 20,
     attackType: 'area', baseDamage: 5, reward: 350, knockbacks: 3,
   },

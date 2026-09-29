@@ -5,6 +5,19 @@
 // 画像が読み込めない/未設定の場合は自動でプレースホルダー図形を描画する。
 
 const images = new Map(); // def.id -> HTMLImageElement
+const backgrounds = new Map(); // src -> HTMLImageElement
+
+/** 背景などの画像を読み込み(キャッシュ)。読み込み済みなら画像、まだなら null */
+export function getImage(src) {
+  if (!src) return null;
+  let img = backgrounds.get(src);
+  if (!img) {
+    img = new Image();
+    img.src = src;
+    backgrounds.set(src, img);
+  }
+  return img.complete && img.naturalWidth > 0 ? img : null;
+}
 
 export function preloadSprites(defs) {
   for (const def of defs) {
@@ -51,7 +64,8 @@ export function drawUnit(ctx, unit, x, y, scale) {
 
   const img = spriteFor(def);
   if (img) {
-    if (unit.dir < 0) ctx.scale(-1, 1);
+    const facing = def.spriteFacing === 'left' ? -1 : 1;
+    if (unit.dir !== facing) ctx.scale(-1, 1);
     const h = s * (def.spriteScale ?? 1.6);
     const w = (img.naturalWidth / img.naturalHeight) * h;
     ctx.drawImage(img, -w / 2, -h, w, h);

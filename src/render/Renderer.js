@@ -1,6 +1,6 @@
 // 戦闘画面の Canvas 描画(背景・拠点・ユニット・エフェクト)
 import { WORLD } from '../config/constants.js';
-import { drawUnit, visualHeight } from './sprites.js';
+import { drawUnit, visualHeight, getImage } from './sprites.js';
 
 export class Renderer {
   constructor(canvas) {
@@ -77,6 +77,15 @@ export class Renderer {
 
   drawBackground(theme) {
     const { ctx, w, h, groundY } = this;
+    const bg = getImage(theme.bg);
+    if (bg) {
+      // 画面を覆うように拡大し、下端(地面側)を合わせる
+      const scale = Math.max(w / bg.naturalWidth, h / bg.naturalHeight);
+      const dw = bg.naturalWidth * scale;
+      const dh = bg.naturalHeight * scale;
+      ctx.drawImage(bg, (w - dw) / 2, h - dh, dw, dh);
+      return;
+    }
     const sky = ctx.createLinearGradient(0, 0, 0, groundY);
     sky.addColorStop(0, theme.sky[0]);
     sky.addColorStop(1, theme.sky[1]);

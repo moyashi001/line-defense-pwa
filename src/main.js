@@ -1,18 +1,19 @@
 // エントリーポイント: 画面遷移と戦闘の組み立て
 import { APP_VERSION, REWARD } from './config/constants.js';
-import { STAGES } from './config/stages.js';
+import { STAGES, WORLDS } from './config/stages.js';
 import { ALLY_UNITS, ENEMY_UNITS, allyById } from './config/units.js';
 import { Progress } from './core/storage.js';
 import { GameLoop } from './core/loop.js';
 import { Battle } from './game/Battle.js';
 import { Renderer } from './render/Renderer.js';
-import { preloadSprites } from './render/sprites.js';
+import { preloadSprites, getImage } from './render/sprites.js';
 import { ScreenManager, renderStageList, renderTeam, renderResult, unitsUnlockedBy } from './ui/screens.js';
 import { BattleUI } from './ui/battleUI.js';
 
 const $ = (id) => document.getElementById(id);
 
 preloadSprites([...ALLY_UNITS, ...Object.values(ENEMY_UNITS)]);
+WORLDS.forEach((w) => getImage(w.theme.bg)); // 背景の先読み
 
 const screens = new ScreenManager();
 const renderer = new Renderer($('battle-canvas'));
