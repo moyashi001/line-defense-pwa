@@ -35,7 +35,8 @@ function spriteFor(def) {
 
 /** 見た目の高さ(ワールド単位)。HPバーの位置合わせ用 */
 export function visualHeight(def) {
-  return def.size * (spriteFor(def) ? (def.spriteScale ?? 1.6) : 1);
+  if (!spriteFor(def)) return def.size;
+  return def.drawHeight ?? def.size * (def.spriteScale ?? 1.6);
 }
 
 /**
@@ -72,7 +73,7 @@ export function drawUnit(ctx, unit, x, y, scale) {
   if (img) {
     const facing = def.spriteFacing === 'left' ? -1 : 1;
     if (unit.dir !== facing) ctx.scale(-1, 1);
-    const h = s * (def.spriteScale ?? 1.6);
+    const h = visualHeight(def) * scale;
     const w = (img.naturalWidth / img.naturalHeight) * h;
     ctx.drawImage(img, -w / 2, -h, w, h);
     if (unit.hitFlash > 0) {
