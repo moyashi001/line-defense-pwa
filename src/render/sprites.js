@@ -20,6 +20,11 @@ function spriteFor(def) {
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
+/** 見た目の高さ(ワールド単位)。HPバーの位置合わせ用 */
+export function visualHeight(def) {
+  return def.size * (spriteFor(def) ? (def.spriteScale ?? 1.6) : 1);
+}
+
 /**
  * ユニットを1体描画する
  * @param {CanvasRenderingContext2D} ctx
@@ -47,7 +52,7 @@ export function drawUnit(ctx, unit, x, y, scale) {
   const img = spriteFor(def);
   if (img) {
     if (unit.dir < 0) ctx.scale(-1, 1);
-    const h = s;
+    const h = s * (def.spriteScale ?? 1.6);
     const w = (img.naturalWidth / img.naturalHeight) * h;
     ctx.drawImage(img, -w / 2, -h, w, h);
     if (unit.hitFlash > 0) {
@@ -79,12 +84,22 @@ export function drawUnitIcon(canvas, def, dir = 1) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, size, size);
   const s = size * 0.8;
+  const img0 = spriteFor(def);
   ctx.save();
-  ctx.translate(size / 2, size / 2 + s / 2);
+  if (img0) {
+    const ratio = img0.naturalWidth / img0.naturalHeight;
+    ctx.translate(size / 2, size / 2 + (ratio > 1 ? size / ratio : size) / 2);
+  } else {
+    ctx.translate(size / 2, size / 2 + s / 2);
+  }
   const img = spriteFor(def);
   if (img) {
     if (dir < 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, -s / 2, -s, s, s);
+    // 縦横比を保ったままアイコン枠に収める
+    const ratio = img.naturalWidth / img.naturalHeight;
+    const h = ratio > 1 ? size / ratio : size;
+    const w = h * ratio;
+    ctx.drawImage(img, -w / 2, -h, w, h);
   } else {
     drawPlaceholder(ctx, def, s, dir, null, 0);
   }

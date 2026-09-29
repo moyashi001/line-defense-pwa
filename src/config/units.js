@@ -1,6 +1,8 @@
 // キャラクター定義
 //   shape / color / label : 画像がないときのプレースホルダー描画用
 //   sprite                : 画像パス(例 'assets/sprites/soldier.png')。設定すると自動で画像描画に切り替わる
+//                           右向き・足元が画像の下端・背景透過の PNG
+//   spriteScale           : 画像の表示高さ = size × この倍率(当たり判定より大きく見せる。既定 1.6)
 //   role                  : ボタン・編成画面に表示する役割
 //   attackType            : 'melee'(単体近接) | 'area'(範囲近接) | 'ranged'(飛び道具)
 //   range                 : 相手との隙間がこの値以下なら攻撃
@@ -24,21 +26,21 @@
 export const ALLY_UNITS = [
   {
     id: 'soldier', name: 'ソルジャー', role: '近接', label: '剣', shape: 'circle', color: '#4fc3f7',
-    sprite: null,
+    sprite: 'assets/sprites/soldier.png', spriteScale: 1.9,
     size: 24, hp: 110, atk: 16, range: 8, speed: 50, attackInterval: 0.9,
     attackType: 'melee', cost: 50, cooldown: 3,
   },
   {
     id: 'guard', name: 'ガード', role: '壁', label: '盾', shape: 'square', color: '#81c784',
-    sprite: null,
+    sprite: 'assets/sprites/guard.png', spriteScale: 1.5,
     size: 30, hp: 600, atk: 5, range: 6, speed: 30, attackInterval: 1.4, armor: 6,
     attackType: 'melee', cost: 100, cooldown: 6, knockbacks: 3,
   },
   {
     id: 'archer', name: 'アーチャー', role: '遠距離', label: '弓', shape: 'triangle', color: '#ffb74d',
-    sprite: null,
+    sprite: 'assets/sprites/archer.png', spriteScale: 1.9,
     size: 24, hp: 70, atk: 26, range: 170, speed: 40, attackInterval: 1.3,
-    attackType: 'ranged', projectileSpeed: 420, projectileColor: '#fff3b0',
+    attackType: 'ranged', projectileSpeed: 420, projectileColor: '#7dffb0',
     cost: 150, cooldown: 4,
   },
   {
