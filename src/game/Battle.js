@@ -1,5 +1,5 @@
 // 戦闘の状態とルール(描画・DOMには依存しない)
-import { WORLD, GAME, COST, LEVEL } from '../config/constants.js';
+import { WORLD, GAME, COST, LEVEL, costLevelAt } from '../config/constants.js';
 import { ALLY_UNITS, ENEMY_UNITS } from '../config/units.js';
 import { Unit } from './Unit.js';
 import { Projectile } from './Projectile.js';
@@ -20,7 +20,8 @@ export class Battle {
     this.time = 0;
     this.life = stage.life;
     this.maxLife = stage.life;
-    this.money = stage.startMoney;
+    this.costLevel = 0; // 経過時間で自動的に上がる(COST.levels)
+    this.money = Math.min(stage.startMoney, COST.levels[0].max);
     this.kills = 0;
 
     this.castle = new Castle(stage.castleHp);
@@ -49,8 +50,16 @@ export class Battle {
   }
 
   // ---------- 参照系 ----------
-  get costMax() { return COST.max; }
-  get costRate() { return COST.rate; }
+  get costMax() { return COST.levels[this.costLevel].max; }
+  get costRate() { return COST.levels[this.costLevel].rate; }
+  get costMaxLevel() { return COST.levels.length; }
+  /** 次のコストレベルまでの進み具合(0〜1)。最大なら 1 */
+  get costLevelProgress() {
+    const next = COST.levels[this.costLevel + 1];
+    if (!next) return 1;
+    const cur = COST.levels[this.costLevel];
+    return (this.time - cur.time) / (next.time - cur.time);
+  }
   get totalWaves() { return this.stage.waves.length; }
   get isOver() { return this.result !== null; }
   get allyCount() { return this.units.filter((u) => u.side === 'ally' && u.alive).length; }
@@ -152,6 +161,15 @@ export class Battle {
     }
   }
 
+  /** 経過時間に応じてコストレベルを自動で上げる */
+  updateCostLevel() {
+    const lv = costLevelAt(this.time);
+    if (lv === this.costLevel) return;
+    this.costLevel = lv;
+    this.addPopup(WORLD.allyBaseX + 70, `コスト Lv${lv + 1}！`, '#ffd84d', 70);
+    this.emit('costLevelUp', { level: lv + 1, max: this.costMax, rate: this.costRate });
+  }
+
   /** 城からの定期増援(ステージに castleSpawn があるとき) */
   updateCastleSpawn(dt) {
     const cs = this.stage.castleSpawn;
@@ -192,6 +210,7 @@ export class Battle {
     }
 
     this.time += dt;
+    this.updateCostLevel();
     this.money = Math.min(this.costMax, this.money + this.costRate * dt);
     this.allyCooldowns = this.allyCooldowns.map((c) => Math.max(0, c - dt));
 
@@ -253,7 +272,8 @@ export class Battle {
     }
     if (unit.side === 'enemy') {
       this.kills += 1;
-      const reward = unit.def.reward ?? 0;
+      // 撃破報酬: 敵の種類ごとの reward(雑魚は少なく、ボスは多い)
+      const reward = Math.round((unit.def.reward ?? 0) * COST.killRewardMul);
       if (reward) {
         this.money = Math.min(this.costMax, this.money + reward);
         this.addPopup(unit.x, `+${reward}`, '#ffd84d');

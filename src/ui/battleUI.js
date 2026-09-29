@@ -18,6 +18,8 @@ export class BattleUI {
       moneyFill: $('money-fill'),
       moneyText: $('hud-money'),
       costNow: $('cost-now'),
+      costLevel: $('cost-level'),
+      costLvFill: $('cost-lv-fill'),
       allyCount: $('ally-count'),
       banner: $('battle-banner'),
     };
@@ -71,6 +73,10 @@ export class BattleUI {
     el.moneyFill.style.width = `${(battle.money / battle.costMax) * 100}%`;
 
     this.setText('costNow', el.costNow, String(money));
+    const lvText = battle.costLevel + 1 >= battle.costMaxLevel ? 'MAX' : `Lv${battle.costLevel + 1}`;
+    if (this.cache.lv !== undefined && this.cache.lv !== lvText) this.pulse(el.costNow.parentElement, 'lvup');
+    this.setText('lv', el.costLevel, lvText);
+    el.costLvFill.style.width = `${battle.costLevelProgress * 100}%`;
     this.setText('allyCount', el.allyCount, `出撃 ${battle.allyCount}/${battle.allyCap}`);
     el.allyCount.classList.toggle('full', battle.allyCount >= battle.allyCap);
 
@@ -94,6 +100,13 @@ export class BattleUI {
       }
       b.ready = ready;
     });
+  }
+
+  /** 要素に一度だけアニメーション用クラスを付ける */
+  pulse(elm, cls) {
+    elm.classList.remove(cls);
+    void elm.offsetWidth;
+    elm.classList.add(cls);
   }
 
   showBanner(text, color = '#fff', duration = 1500, alert = false) {

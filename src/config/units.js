@@ -96,7 +96,7 @@ export const ALLY_UNITS = [
 export const DEFAULT_DECK = ['soldier', 'guard', 'archer', 'lancer', 'cannon'];
 export const DECK_SIZE = 5;
 
-// 敵定義 (baseDamage: 自陣到達時のライフ減少量 / reward: 撃破時に得るコスト / boss: ボス演出対象)
+// 敵定義 (baseDamage: 自陣到達時のライフ減少量 / reward: 撃破時にすぐ得られるコスト(雑魚は少量・ボスは多め) / boss: ボス演出対象)
 export const ENEMY_UNITS = {
   slime: {
     name: 'スライム', label: 'ス', shape: 'blob', color: '#9ccc65',
