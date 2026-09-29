@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1b2440" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>ライン・ディフェンス</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- タイトル画面 -->
+    <section id="screen-title" class="screen">
+      <div class="title-wrap">
+        <h1 class="logo">ライン・ディフェンス</h1>
+        <p class="subtitle">LINE DEFENSE</p>
+        <button id="btn-start" class="btn btn-primary btn-lg">タップでスタート</button>
+      </div>
+      <p class="version" id="app-version"></p>
+    </section>
+
+    <!-- ステージ選択画面 -->
+    <section id="screen-select" class="screen">
+      <header class="select-header">
+        <button id="btn-select-back" class="btn btn-ghost">← タイトル</button>
+        <h2>ステージ選択</h2>
+        <button id="btn-reset" class="btn btn-ghost btn-sm">データ消去</button>
+      </header>
+      <div id="stage-list" class="stage-list"></div>
+    </section>
+
+    <!-- 戦闘画面 -->
+    <section id="screen-battle" class="screen">
+      <div class="hud">
+        <div class="hud-item hud-life"><span class="hud-label">ライフ</span><span id="hud-life"></span></div>
+        <div class="hud-item"><span id="hud-stage"></span> / <span id="hud-wave"></span></div>
+        <div class="hud-item"><span class="hud-label">時間</span><span id="hud-time">00:00</span></div>
+        <div class="hud-money">
+          <div class="money-bar"><div id="money-fill" class="money-fill"></div></div>
+          <span id="hud-money" class="money-text">0 / 0</span>
+        </div>
+        <button id="btn-pause" class="btn btn-icon" aria-label="ポーズ">II</button>
+      </div>
+      <div class="field">
+        <canvas id="battle-canvas"></canvas>
+        <div id="battle-banner" class="banner"></div>
+      </div>
+      <div class="deck">
+        <button id="btn-wallet" class="wallet-btn">
+          <span class="wallet-title">コスト Lv<span id="wallet-level">1</span></span>
+          <span class="wallet-cost" id="wallet-cost"></span>
+        </button>
+        <div id="unit-buttons" class="unit-buttons"></div>
+      </div>
+      <div id="pause-overlay" class="overlay">
+        <div class="panel">
+          <h2>ポーズ</h2>
+          <button id="btn-resume" class="btn btn-primary">再開する</button>
+          <button id="btn-retire" class="btn btn-ghost">リタイア</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 結果画面 -->
+    <section id="screen-result" class="screen">
+      <div class="panel result-panel">
+        <h2 id="result-title" class="result-title"></h2>
+        <dl class="result-stats">
+          <dt>ステージ</dt><dd id="result-stage"></dd>
+          <dt>クリアタイム</dt><dd id="result-time"></dd>
+          <dt>撃破数</dt><dd id="result-kills"></dd>
+        </dl>
+        <div class="result-actions">
+          <button id="btn-next" class="btn btn-primary">次のステージへ</button>
+          <button id="btn-retry" class="btn">もう一度</button>
+          <button id="btn-to-select" class="btn btn-ghost">ステージ選択へ</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 縦画面時の案内 -->
+    <div id="rotate-notice">
+      <div class="rotate-icon">📱↻</div>
+      <p>スマホを横向きにしてください</p>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

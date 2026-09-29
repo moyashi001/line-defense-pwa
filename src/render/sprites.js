@@ -1,0 +1,161 @@
+// キャラクター描画モジュール
+// 画像差し替え手順:
+//   1. assets/sprites/ に PNG を置く(右向き・足元が画像の下端になる絵を推奨)
+//   2. src/config/units.js の該当キャラに sprite: 'assets/sprites/xxx.png' を設定
+// 画像が読み込めない/未設定の場合は自動でプレースホルダー図形を描画する。
+
+const images = new Map(); // def.id -> HTMLImageElement
+
+export function preloadSprites(defs) {
+  for (const def of defs) {
+    if (!def.sprite || images.has(def.id)) continue;
+    const img = new Image();
+    img.src = def.sprite;
+    images.set(def.id, img);
+  }
+}
+
+function spriteFor(def) {
+  const img = images.get(def.id);
+  return img && img.complete && img.naturalWidth > 0 ? img : null;
+}
+
+/**
+ * ユニットを1体描画する
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {import('../game/Unit.js').Unit} unit
+ * @param {number} x 画面上の中心x
+ * @param {number} y 画面上の足元y
+ * @param {number} scale ワールド→画面のサイズ倍率
+ */
+export function drawUnit(ctx, unit, x, y, scale) {
+  const def = unit.def;
+  const s = def.size * scale;
+
+  // アニメーション: 歩行時の上下ゆれ / 攻撃時の突き出し / 死亡時フェード
+  const bob = unit.state === 'walk' ? Math.abs(Math.sin(unit.animTime * 10)) * s * 0.08 : 0;
+  const lunge = unit.attackAnim > 0 ? Math.sin((unit.attackAnim / 0.25) * Math.PI) * s * 0.25 * unit.dir : 0;
+
+  ctx.save();
+  ctx.translate(x + lunge, y - bob);
+  if (unit.dead) {
+    const a = Math.max(0, unit.removeTimer / 0.5);
+    ctx.globalAlpha = a;
+    ctx.translate(0, -(1 - a) * s * 0.6);
+  }
+
+  const img = spriteFor(def);
+  if (img) {
+    if (unit.dir < 0) ctx.scale(-1, 1);
+    const h = s;
+    const w = (img.naturalWidth / img.naturalHeight) * h;
+    ctx.drawImage(img, -w / 2, -h, w, h);
+    if (unit.hitFlash > 0) {
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = 'rgba(255,255,255,.7)';
+      ctx.fillRect(-w / 2, -h, w, h);
+    }
+  } else {
+    drawPlaceholder(ctx, def, s, unit.dir, unit.hitFlash > 0);
+  }
+  ctx.restore();
+}
+
+/** ボタン用アイコン(静止画)を canvas に描く */
+export function drawUnitIcon(canvas, def, dir = 1) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const size = canvas.clientWidth || 36;
+  canvas.width = size * dpr;
+  canvas.height = size * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, size, size);
+  const s = size * 0.8;
+  ctx.save();
+  ctx.translate(size / 2, size / 2 + s / 2);
+  const img = spriteFor(def);
+  if (img) {
+    if (dir < 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, -s / 2, -s, s, s);
+  } else {
+    drawPlaceholder(ctx, def, s, dir, false);
+  }
+  ctx.restore();
+}
+
+// ---------- プレースホルダー図形 ----------
+// 原点 = 足元中央。上方向がマイナス。
+function drawPlaceholder(ctx, def, s, dir, flash) {
+  const r = s / 2;
+  ctx.beginPath();
+  switch (def.shape) {
+    case 'square':
+      roundRect(ctx, -r, -s, s, s, s * 0.15);
+      break;
+    case 'triangle':
+      ctx.moveTo(-r, 0);
+      ctx.lineTo(r, 0);
+      ctx.lineTo(dir * r * 0.3, -s);
+      ctx.closePath();
+      break;
+    case 'diamond':
+      ctx.moveTo(0, 0);
+      ctx.lineTo(r, -r);
+      ctx.lineTo(0, -s);
+      ctx.lineTo(-r, -r);
+      ctx.closePath();
+      break;
+    case 'hex':
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        const px = Math.cos(a) * r;
+        const py = -r + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      break;
+    case 'blob':
+      ctx.moveTo(-r, 0);
+      ctx.bezierCurveTo(-r, -s * 1.1, r, -s * 1.1, r, 0);
+      ctx.closePath();
+      break;
+    case 'circle':
+    default:
+      ctx.arc(0, -r, r, 0, Math.PI * 2);
+  }
+  ctx.fillStyle = flash ? '#ffffff' : def.color;
+  ctx.fill();
+  ctx.lineWidth = Math.max(1.5, s * 0.07);
+  ctx.strokeStyle = 'rgba(0,0,0,.55)';
+  ctx.stroke();
+
+  // 目(進行方向側)
+  const eyeX = dir * r * 0.42;
+  const eyeY = -s * 0.68;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.arc(eyeX, eyeY, s * 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#111';
+  ctx.beginPath();
+  ctx.arc(eyeX + dir * s * 0.035, eyeY, s * 0.05, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 識別用の文字
+  if (def.label) {
+    ctx.fillStyle = 'rgba(0,0,0,.75)';
+    ctx.font = `900 ${Math.round(s * 0.38)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(def.label, -dir * r * 0.1, -s * 0.34);
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
