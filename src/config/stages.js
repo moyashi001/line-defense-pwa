@@ -16,7 +16,7 @@ export const WORLDS = [
   {
     id: 1,
     name: '草原',
-    theme: { bg: 'assets/bg/world1.jpg', ambient: 'spores', sky: ['#7ec8f2', '#d9f3ff'], ground: '#6fbf4a', groundDark: '#4e9a33', card: '#3f8f3a' },
+    theme: { bg: 'assets/bg/world1.jpg', sky: ['#7ec8f2', '#d9f3ff'], ground: '#6fbf4a', groundDark: '#4e9a33', card: '#3f8f3a' },
     life: 10,
     names: ['はじまりの草原', '風の丘', 'スライム沼', '小川の橋', '草原の主'],
     pool: [
