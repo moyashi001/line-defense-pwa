@@ -19,9 +19,9 @@
 //
 // 相性の目安:
 //   スライムの群れ / 分裂 → ランサー(範囲) / キャノン(爆風)
-//   オーク・盾兵(装甲)    → メイジ(装甲無視) / キャノン / ランサー
+//   ビースト・盾兵(装甲)  → メイジ(装甲無視) / キャノン / ランサー
 //   コウモリ(飛行)        → レーザー / メイジ / キャノン / ウィング
-//   ホネ弓兵・シャーマン  → 射程で勝るレーザー・メイジ・キャノン、ガードで受ける
+//   エイリアン兵・シャーマン → 射程で勝るレーザー・メイジ・キャノン、ガードで受ける
 //   ボス                  → 壁役を並べて遠距離で削る。ヒーラーで壁を長持ちさせる
 
 export const ALLY_UNITS = [
@@ -102,6 +102,7 @@ export const ENEMY_UNITS = {
   },
   bigSlime: {
     name: 'デカスライム', label: 'デ', shape: 'blob', color: '#7cb342',
+    sprite: 'assets/sprites/slime.png', spriteFacing: 'left', spriteScale: 1.5,
     size: 34, hp: 220, atk: 14, range: 6, speed: 26, attackInterval: 1.2,
     attackType: 'melee', baseDamage: 2, reward: 30, splitInto: { type: 'slime', count: 2 },
   },
@@ -111,7 +112,8 @@ export const ENEMY_UNITS = {
     attackType: 'melee', baseDamage: 1, reward: 20,
   },
   orc: {
-    name: 'オーク', label: 'オ', shape: 'square', color: '#607d8b',
+    name: 'ビースト', label: 'ビ', shape: 'square', color: '#607d8b',
+    sprite: 'assets/sprites/orc.png', spriteScale: 1.5,
     size: 34, hp: 380, atk: 26, range: 8, speed: 24, attackInterval: 1.5, armor: 12,
     attackType: 'melee', baseDamage: 2, reward: 60, knockbacks: 2,
   },
@@ -121,13 +123,15 @@ export const ENEMY_UNITS = {
     attackType: 'melee', baseDamage: 2, reward: 50,
   },
   skeletonArcher: {
-    name: 'ホネ弓兵', label: '骨', shape: 'diamond', color: '#e0e0e0',
+    name: 'エイリアン兵', label: '銃', shape: 'diamond', color: '#e0e0e0',
+    sprite: 'assets/sprites/skeletonArcher.png', spriteScale: 1.9,
     size: 24, hp: 80, atk: 15, range: 150, speed: 32, attackInterval: 1.5,
-    attackType: 'ranged', projectileSpeed: 380, projectileColor: '#ddd',
+    attackType: 'ranged', projectileSpeed: 380, projectileColor: '#e040fb',
     baseDamage: 1, reward: 40,
   },
   bat: {
     name: 'コウモリ', label: '蝠', shape: 'triangle', color: '#5e35b1',
+    sprite: 'assets/sprites/bat.png', spriteScale: 1.6,
     size: 22, hp: 70, atk: 12, range: 6, speed: 62, attackInterval: 0.9, flying: true,
     attackType: 'melee', baseDamage: 1, reward: 30,
   },
@@ -149,6 +153,7 @@ export const ENEMY_UNITS = {
   // ---------- ボス ----------
   giantSlime: {
     name: 'キングスライム', label: '王', shape: 'blob', color: '#558b2f', boss: true,
+    sprite: 'assets/sprites/giantSlime.png', spriteScale: 1.2,
     size: 72, hp: 1800, atk: 30, range: 30, speed: 16, attackInterval: 2,
     attackType: 'area', baseDamage: 5, reward: 300, knockbacks: 3,
     splitInto: { type: 'bigSlime', count: 3 },
@@ -161,6 +166,7 @@ export const ENEMY_UNITS = {
   },
   iceGiant: {
     name: '氷の巨人', label: '巨', shape: 'hex', color: '#4fc3f7', boss: true,
+    sprite: 'assets/sprites/iceGiant.png', spriteScale: 1.35,
     size: 70, hp: 3600, atk: 50, range: 40, speed: 15, attackInterval: 2.2, armor: 10,
     attackType: 'area', slowOnHit: { factor: 0.5, duration: 3 },
     baseDamage: 5, reward: 400, knockbacks: 4,

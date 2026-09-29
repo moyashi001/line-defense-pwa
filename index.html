@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>ライン・ディフェンス</title>
+  <title>宇宙人大戦争</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -17,12 +17,11 @@
   <div id="app">
     <!-- タイトル画面 -->
     <section id="screen-title" class="screen">
-      <div class="title-wrap">
-        <h1 class="logo">ライン・ディフェンス</h1>
-        <p class="subtitle">LINE DEFENSE</p>
-        <button id="btn-start" class="btn btn-primary btn-lg">タップでスタート</button>
-        <p class="version" id="app-version"></p>
-      </div>
+      <!-- タイトル画像にロゴと TOUCH START が描かれているので、画面全体をスタートボタンにする -->
+      <button id="btn-start" class="title-start" aria-label="スタート">
+        <img class="title-art" src="assets/title.jpg" alt="宇宙人大戦争" />
+      </button>
+      <p class="version" id="app-version"></p>
     </section>
 
     <!-- ワールド選択画面 -->

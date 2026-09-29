@@ -1,6 +1,6 @@
 {
-  "name": "ライン・ディフェンス",
-  "short_name": "LineDefense",
+  "name": "宇宙人大戦争",
+  "short_name": "宇宙人大戦争",
   "description": "横画面で遊ぶ2Dラインディフェンスゲーム",
   "start_url": "./index.html",
   "scope": "./",
